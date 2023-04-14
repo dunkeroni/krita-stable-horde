@@ -9,6 +9,7 @@ import math
 import re
 
 from krita import *
+from PyKrita import *
 
 VERSION = 134
 

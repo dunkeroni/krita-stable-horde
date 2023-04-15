@@ -11,6 +11,14 @@ List of existing and planned features
     Single model only (stable diffusion 1.5?)
 
 ## Desired Features
+### Organization:
+Break krita_stablehorde.py into functional modules
+    Current image + settings ==> Resolve image/mask/mode ==> preformat image scaling ==> send to horde
+    receive from horde ==> add results to layers and group ==> apply selected layer to current image
+Change interface from floating window on plugin activation to dockers
+    Automatically available on startup
+    Settings on left panel
+    Results interaction on bottom?
 ### Basics:
 Model selection
     filtering/sorting
@@ -34,7 +42,3 @@ Generate on Selection instead of whole file resolution
     Auto-mask selection?
 Settings window permanently fixed as toolbar
 User info from API key (kudos, generation statistics, etc.)
-### Organization:
-Break krita_stablehorde.py into functional modules
-    Current image + settings ==> Resolve image/mask/mode ==> preformat image scaling ==> send to horde
-    receive from horde ==> add results to layers and group ==> apply selected layer to current image

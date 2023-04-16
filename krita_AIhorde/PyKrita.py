@@ -10,7 +10,7 @@ class Window(QObject):
 	def qwindow(self) -> QMainWindow:
 		# type: () -> QMainWindow:
 		"""@access public Q_SLOTS
- Return a handle to the QMainWindow widget. This is useful to e.g. parent dialog boxes and message box. """
+ 		Return a handle to the QMainWindow widget. This is useful to e.g. parent dialog boxes and message box. """
 
 	def dockers(self) -> List[QDockWidget]:
 		# type: () -> List[QDockWidget]:

@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Service
+ServiceTypes=Krita/PythonPlugin
+X-KDE-Library=krita_AIhorde
+X-Python-2-Compatible=false
+Name=Krita AI Horde
+Comment=Krita plugin for generating and inpainting images using the AI Horde.

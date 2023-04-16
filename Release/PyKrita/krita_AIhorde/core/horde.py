@@ -170,7 +170,8 @@ class Worker():
             "params": params,
             "nsfw": nsfw,
             "censor_nsfw": False,
-            "r2": True
+            "r2": True,
+            "models": [self.dialog.model.value()]
          }
 
          doc = Application.activeDocument()

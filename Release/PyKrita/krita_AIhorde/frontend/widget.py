@@ -2,7 +2,9 @@ from PyKrita import * #fake import for IDE
 
 from krita import *
 import json
+import requests
 from ..misc import utility
+
 
 class Dialog(QDialog):
 	def __init__(self, worker):
@@ -52,6 +54,20 @@ class Dialog(QDialog):
 		self.seed = QLineEdit()
 		self.seed.setText(settings["seed"])
 		layout.addRow("Seed (optional)", self.seed)
+
+		# Model
+		self.model = QComboBox()
+		#get a list of models from the server
+		try:
+			response = requests.get("https://stablehorde.com/api/v2/status/models")
+			models = json.loads(response.text)
+			for model in models:
+				self.model.addItem(model["name"])
+		except Exception as ex:
+			self.utils.errorMessage("Error", "Could not connect to the server to get a list of models.")
+			self.reject()
+		self.model.setCurrentIndex(settings["model"])
+		layout.addRow("Model", self.model)
 
 		# Prompt
 		self.prompt = QTextEdit()

@@ -6,15 +6,15 @@ import urllib.request
 from ..misc import utility
 
 
-class Dialog(QDialog):
+class Dialog(QWidget):
 	def __init__(self, worker):
-		super().__init__(None)
+		super().__init__()#None)
 
 		self.worker = worker
 		self.utils = utils = utility.Checker()
 		settings = self.readSettings()
 
-		self.setWindowTitle("Stablehorde")
+		self.setWindowTitle("AI Horde")
 		self.layout = QVBoxLayout()
 
 		# Basic Tab
@@ -44,6 +44,24 @@ class Dialog(QDialog):
 		self.generationMode.buttonClicked.connect(self.handleModeChanged)
 
 		mode = self.generationMode.checkedId()
+
+		# Init Strength
+		slider = QSlider(Qt.Orientation.Horizontal, self)
+		slider.setRange(0, 10)
+		slider.setTickInterval(1)
+		slider.setValue(settings["initStrength"])
+		self.initStrength = slider
+		labelInitStrength = QLabel(str(self.initStrength.value()/10))
+		self.initStrength.valueChanged.connect(lambda: labelInitStrength.setText(str(self.initStrength.value()/10)))
+		layoutH = QHBoxLayout()
+		layoutH.addWidget(self.initStrength)
+		layoutH.addWidget(labelInitStrength)
+		container = QWidget()
+		container.setLayout(layoutH)
+		layout.addRow("Init Strength", container)
+
+		if mode == worker.MODE_TEXT2IMG or mode == worker.MODE_INPAINTING:
+			self.initStrength.setEnabled(False)
 
 		# NSFW
 		self.nsfw = QCheckBox()
@@ -102,25 +120,7 @@ class Dialog(QDialog):
 
 		# Advanced Tab
 		tabAdvanced = QWidget()
-		layout = QFormLayout()
-
-		# Init Strength
-		slider = QSlider(Qt.Orientation.Horizontal, self)
-		slider.setRange(0, 10)
-		slider.setTickInterval(1)
-		slider.setValue(settings["initStrength"])
-		self.initStrength = slider
-		labelInitStrength = QLabel(str(self.initStrength.value()/10))
-		self.initStrength.valueChanged.connect(lambda: labelInitStrength.setText(str(self.initStrength.value()/10)))
-		layoutH = QHBoxLayout()
-		layoutH.addWidget(self.initStrength)
-		layoutH.addWidget(labelInitStrength)
-		container = QWidget()
-		container.setLayout(layoutH)
-		layout.addRow("Init Strength", container)
-
-		if mode == worker.MODE_TEXT2IMG or mode == worker.MODE_INPAINTING:
-			self.initStrength.setEnabled(False)
+		layout = QFormLayout() #not robust, change to specify advanced and update layout calls later on
 
 		# Prompt Strength
 		slider = QSlider(Qt.Orientation.Horizontal, self)
@@ -135,7 +135,7 @@ class Dialog(QDialog):
 		layoutH.addWidget(labelPromptStrength)
 		container = QWidget()
 		container.setLayout(layoutH)
-		layout.addRow("Prompt Strength", container)
+		layout.addRow("CFG", container)
 
 		# Steps
 		slider = QSlider(Qt.Orientation.Horizontal, self)
@@ -155,6 +155,8 @@ class Dialog(QDialog):
 		# API Key
 		self.apikey = QLineEdit()
 		self.apikey.setText(settings["apikey"])
+		#make the apikey text hidden
+		self.apikey.setEchoMode(QLineEdit.Password)
 		layout.addRow("API Key (optional)", self.apikey)
 
 		# Max Wait
@@ -247,7 +249,10 @@ class Dialog(QDialog):
 				self.statusDisplay.setText("An error occurred: " + ev.message)
 				self.setEnabledStatus(True)
 			elif ev.updateType == utility.UpdateEvent.TYPE_FINISHED:
-				self.close()
+				#set status to none and activate the generate button again
+				self.statusDisplay.setText("Done.")
+				self.setEnabledStatus(True)
+				
 
 	#override
 	def reject(self):

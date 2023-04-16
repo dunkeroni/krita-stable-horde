@@ -167,7 +167,8 @@ class Worker():
          }
 
          data = {
-            "prompt": self.dialog.prompt.toPlainText(),
+            #append negative prompt only if it is not empty
+            "prompt": self.dialog.prompt.toPlainText() + (" ### " + self.dialog.negativePrompt.toPlainText() if self.dialog.negativePrompt.toPlainText() != "" else ""),
             "params": params,
             "nsfw": nsfw,
             "censor_nsfw": False,

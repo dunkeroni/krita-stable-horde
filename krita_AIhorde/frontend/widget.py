@@ -63,11 +63,6 @@ class Dialog(QWidget):
 		if mode == worker.MODE_TEXT2IMG or mode == worker.MODE_INPAINTING:
 			self.initStrength.setEnabled(False)
 
-		# NSFW
-		self.nsfw = QCheckBox()
-		self.nsfw.setCheckState(settings["nsfw"])
-		layout.addRow("NSFW",self.nsfw)
-
 		# Seed
 		self.seed = QLineEdit()
 		self.seed.setText(settings["seed"])
@@ -119,6 +114,11 @@ class Dialog(QWidget):
 		self.prompt = QTextEdit()
 		self.prompt.setText(settings["prompt"])
 		layout.addRow("Prompt", self.prompt)
+
+		# Negative Prompt
+		self.negativePrompt = QTextEdit()
+		self.negativePrompt.setText(settings["negativePrompt"])
+		layout.addRow("Negative Prompt", self.negativePrompt)
 
 		# Status
 		self.statusDisplay = QTextEdit()
@@ -186,6 +186,12 @@ class Dialog(QWidget):
 		container = QWidget()
 		container.setLayout(layoutH)
 		layout.addRow("Max Wait (minutes)", container)
+
+		# NSFW
+		self.nsfw = QCheckBox()
+		self.nsfw.setCheckState(settings["nsfw"])
+		layout.addRow("NSFW",self.nsfw)
+
 
 		tabAdvanced.setLayout(layout)
 
@@ -278,10 +284,11 @@ class Dialog(QWidget):
 			"generationMode": self.worker.MODE_TEXT2IMG,
 			"initStrength": 3,
 			"prompt": "",
+			"negativePrompt": "",
 			"promptStrength": 7,
 			"steps": 20,
 			"seed": "",
-			"nsfw": 0,
+			"nsfw": 1,
 			"apikey": "",
 			"maxWait": 5
 		}
@@ -289,7 +296,7 @@ class Dialog(QWidget):
 		try:
 			settings = Application.readSetting("Stablehorde", "Config", None)
 
-			if True: #not settings:
+			if not settings:
 				settings = defaults
 			else:
 				settings = json.loads(settings)
@@ -312,6 +319,7 @@ class Dialog(QWidget):
 			"generationMode": self.generationMode.checkedId(),
 			"initStrength": self.initStrength.value(),
 			"prompt": self.prompt.toPlainText(),
+			"negativePrompt": self.negativePrompt.toPlainText(),
 			"promptStrength": self.promptStrength.value(),
 			"steps": int(self.steps.value()),
 			"seed": self.seed.text(),

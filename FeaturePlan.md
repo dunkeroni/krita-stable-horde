@@ -23,9 +23,10 @@ Break krita_stablehorde.py into functional modules
     Results interaction on bottom?  
 ### Basics:
 ~~Model selection~~  
-    filtering/sorting?  
-Negative Prompt  
-Sampler selection  
+    ~~filtering/sorting?~~  
+    list worker count with model name  
+~~Negative Prompt~~  
+~~Sampler selection~~  
 ### Advanced:
 Highres Fix option  
 Karras (default on)  

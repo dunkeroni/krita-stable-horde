@@ -160,6 +160,7 @@ class Worker():
          nsfw = True if self.dialog.nsfw.isChecked() else False
 
          params = {
+            "sampler_name": self.dialog.sampler.currentText(),
             "cfg_scale": self.dialog.promptStrength.value(),
             "steps": int(self.dialog.steps.value()),
             "seed": self.dialog.seed.text()

@@ -58,7 +58,7 @@ class Dialog(QWidget):
 		layoutH.addWidget(labelInitStrength)
 		container = QWidget()
 		container.setLayout(layoutH)
-		layout.addRow("Init Strength", container)
+		layout.addRow("Denoising", container)
 
 		if mode == worker.MODE_TEXT2IMG or mode == worker.MODE_INPAINTING:
 			self.initStrength.setEnabled(False)
@@ -79,13 +79,41 @@ class Dialog(QWidget):
 		try:
 			response = urllib.request.urlopen("https://stablehorde.net/api/v2/status/models")
 			models = json.loads(response.read())
+			
+			#sort models based on Count
+			models = sorted(models, key=lambda k: k['count'], reverse=True)
+
+			#add to combobox
 			for model in models:
 				self.model.addItem(model["name"])
 		except Exception as ex:
 			self.utils.errorMessage("Error", "Could not connect to the server to get a list of models.")
 			self.reject()
-		self.model.setCurrentIndex(1)
+		self.model.setCurrentIndex(0)
 		layout.addRow("Model", self.model)
+
+		# sampler
+		self.sampler = QComboBox()
+		self.sampler_options = [ 'k_lms', 'k_heun', 'k_euler', 'k_euler_a', 'k_dpm_2', 'k_dpm_2_a', 'k_dpm_fast', 'k_dpm_adaptive', 'k_dpmpp_2s_a', 'k_dpmpp_2m', 'dpmsolver', 'k_dpmpp_sde', 'DDIM' ]
+		for sampler in self.sampler_options:
+			self.sampler.addItem(sampler)
+		self.sampler.setCurrentIndex(3)
+		layout.addRow("Sampler", self.sampler)
+
+		# Steps
+		slider = QSlider(Qt.Orientation.Horizontal, self)
+		slider.setRange(10, 150)
+		slider.setTickInterval(1)
+		slider.setValue(settings["steps"])
+		self.steps = slider
+		labelSteps = QLabel(str(self.steps.value()))
+		self.steps.valueChanged.connect(lambda: labelSteps.setText(str(self.steps.value())))
+		layoutH = QHBoxLayout()
+		layoutH.addWidget(self.steps)
+		layoutH.addWidget(labelSteps)
+		container = QWidget()
+		container.setLayout(layoutH)
+		layout.addRow("Steps", container)
 
 		# Prompt
 		self.prompt = QTextEdit()
@@ -136,21 +164,6 @@ class Dialog(QWidget):
 		container = QWidget()
 		container.setLayout(layoutH)
 		layout.addRow("CFG", container)
-
-		# Steps
-		slider = QSlider(Qt.Orientation.Horizontal, self)
-		slider.setRange(10, 200)
-		slider.setTickInterval(1)
-		slider.setValue(settings["steps"])
-		self.steps = slider
-		labelSteps = QLabel(str(self.steps.value()))
-		self.steps.valueChanged.connect(lambda: labelSteps.setText(str(self.steps.value())))
-		layoutH = QHBoxLayout()
-		layoutH.addWidget(self.steps)
-		layoutH.addWidget(labelSteps)
-		container = QWidget()
-		container.setLayout(layoutH)
-		layout.addRow("Steps", container)
 
 		# API Key
 		self.apikey = QLineEdit()
@@ -265,8 +278,8 @@ class Dialog(QWidget):
 			"generationMode": self.worker.MODE_TEXT2IMG,
 			"initStrength": 3,
 			"prompt": "",
-			"promptStrength": 8,
-			"steps": 50,
+			"promptStrength": 7,
+			"steps": 20,
 			"seed": "",
 			"nsfw": 0,
 			"apikey": "",
@@ -276,7 +289,7 @@ class Dialog(QWidget):
 		try:
 			settings = Application.readSetting("Stablehorde", "Config", None)
 
-			if not settings:
+			if True: #not settings:
 				settings = defaults
 			else:
 				settings = json.loads(settings)
@@ -314,6 +327,7 @@ class Dialog(QWidget):
 			ex = ex
 
 	def setEnabledStatus(self, status):
+		#Update these to include all the widgets that should be disabled when generating
 		self.modeText2Img.setEnabled(status)
 		self.modeImg2Img.setEnabled(status)
 		self.modeInpainting.setEnabled(status)

@@ -31,7 +31,8 @@ Break krita_stablehorde.py into functional modules
 ~~Highres Fix option~~  
 ~~Karras (default on)~~  
 Post Processors  
-CLIP skip  
+~~CLIP skip~~  
+    added, but appears to be broken on the horde right now.  
 Premade prompts  
     Custom positive+negative saved prompts  
     Community prompts from horde  

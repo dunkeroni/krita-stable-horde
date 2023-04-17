@@ -166,6 +166,7 @@ class Worker():
             "seed": self.dialog.seed.text(),
             "hires_fix": self.dialog.highResFix.isChecked(),
             "karras": self.dialog.karras.isChecked(),
+            "clip_skip": self.dialog.clip_skip.value(),
          }
 
          data = {

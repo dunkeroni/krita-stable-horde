@@ -109,6 +109,11 @@ class Dialog(QWidget):
 		container = QWidget()
 		container.setLayout(layoutH)
 		layout.addRow("Steps", container)
+		
+		#HighResFix
+		self.highResFix = QCheckBox()
+		self.highResFix.setChecked(settings["highResFix"])
+		layout.addRow("High Resolution Fix",self.highResFix)
 
 		# Prompt
 		self.prompt = QTextEdit()
@@ -187,22 +192,29 @@ class Dialog(QWidget):
 		container.setLayout(layoutH)
 		layout.addRow("Max Wait (minutes)", container)
 
+		#clip_skip slider
+		slider = QSlider(Qt.Orientation.Horizontal, self)
+		slider.setRange(1, 12)
+		slider.setTickInterval(1)
+		slider.setValue(settings["clip_skip"])
+		self.clip_skip = slider
+		labelClipSkip = QLabel(str(self.clip_skip.value()))
+		self.clip_skip.valueChanged.connect(lambda: labelClipSkip.setText(str(self.clip_skip.value())))
+		layoutH = QHBoxLayout()
+		layoutH.addWidget(self.clip_skip)
+		layoutH.addWidget(labelClipSkip)
+		container = QWidget()
+		container.setLayout(layoutH)
+		layout.addRow("Clip Skip (broken)", container)
+		
 		# NSFW
 		self.nsfw = QCheckBox()
-		self.nsfw.setTristate(False)
-		self.nsfw.setCheckState(settings["nsfw"])
+		self.nsfw.setChecked(settings["nsfw"])
 		layout.addRow("NSFW",self.nsfw)
-
-		#HighResFix
-		self.highResFix = QCheckBox()
-		self.highResFix.setTristate(False)
-		self.highResFix.setCheckState(settings["highResFix"])
-		layout.addRow("High Resolution Fix",self.highResFix)
 
 		# Karras
 		self.karras = QCheckBox()
-		self.karras.setTristate(False)
-		self.karras.setCheckState(settings["karras"])
+		self.karras.setChecked(settings["karras"])
 		layout.addRow("Karras",self.karras)
 
 
@@ -305,6 +317,7 @@ class Dialog(QWidget):
 			"maxWait": 5,
 			"highResFix": False,
 			"karras": True,
+			"clip_skip": 1,
 		}
 
 		try:
@@ -342,6 +355,7 @@ class Dialog(QWidget):
 			"maxWait": self.maxWait.value(),
 			"highResFix": self.highResFix.checkState(),
 			"karras": self.karras.checkState(),
+			"clip_skip": self.clip_skip.value(),
 		}
 
 		try:

@@ -4,9 +4,6 @@ This repository includes a Krita plugin for communication with [AIhorde](https:/
 
 Please check HISTORY.md for the latest changes. 
 
-https://user-images.githubusercontent.com/113246030/196197783-ee750552-b4f9-4722-8a23-0116a1674c9e.MOV
-
-
 ## Installation
 ### Krita
 

@@ -24,12 +24,12 @@ Break krita_stablehorde.py into functional modules
 ### Basics:
 ~~Model selection~~  
     ~~filtering/sorting?~~  
-    list worker count with model name  
+    ~~list worker count with model name~~  
 ~~Negative Prompt~~  
 ~~Sampler selection~~  
 ### Advanced:
-Highres Fix option  
-Karras (default on)  
+~~Highres Fix option~~  
+~~Karras (default on)~~  
 Post Processors  
 CLIP skip  
 Premade prompts  

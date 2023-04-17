@@ -80,7 +80,7 @@ class Dialog(QWidget):
 
 			#add to combobox
 			for model in models:
-				self.model.addItem(model["name"])
+				self.model.addItem(model["name"] + " (" + str(model["count"]) + ")", model["name"])
 		except Exception as ex:
 			self.utils.errorMessage("Error", "Could not connect to the server to get a list of models.")
 			self.reject()

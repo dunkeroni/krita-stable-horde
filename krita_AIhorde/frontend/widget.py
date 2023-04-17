@@ -45,23 +45,23 @@ class Dialog(QWidget):
 
 		mode = self.generationMode.checkedId()
 
-		# Init Strength
+		# Denoise Strength
 		slider = QSlider(Qt.Orientation.Horizontal, self)
-		slider.setRange(0, 10)
+		slider.setRange(0, 100)
 		slider.setTickInterval(1)
-		slider.setValue(settings["initStrength"])
-		self.initStrength = slider
-		labelInitStrength = QLabel(str(self.initStrength.value()/10))
-		self.initStrength.valueChanged.connect(lambda: labelInitStrength.setText(str(self.initStrength.value()/10)))
+		slider.setValue(settings["denoise_strength"])
+		self.denoise_strength = slider
+		labeldenoise_strength = QLabel(str(self.denoise_strength.value()/100))
+		self.denoise_strength.valueChanged.connect(lambda: labeldenoise_strength.setText(str(self.denoise_strength.value()/100)))
 		layoutH = QHBoxLayout()
-		layoutH.addWidget(self.initStrength)
-		layoutH.addWidget(labelInitStrength)
+		layoutH.addWidget(self.denoise_strength)
+		layoutH.addWidget(labeldenoise_strength)
 		container = QWidget()
 		container.setLayout(layoutH)
 		layout.addRow("Denoising", container)
 
 		if mode == worker.MODE_TEXT2IMG or mode == worker.MODE_INPAINTING:
-			self.initStrength.setEnabled(False)
+			self.denoise_strength.setEnabled(False)
 
 		# Seed
 		self.seed = QLineEdit()
@@ -189,16 +189,19 @@ class Dialog(QWidget):
 
 		# NSFW
 		self.nsfw = QCheckBox()
+		self.nsfw.setTristate(False)
 		self.nsfw.setCheckState(settings["nsfw"])
 		layout.addRow("NSFW",self.nsfw)
 
 		#HighResFix
 		self.highResFix = QCheckBox()
+		self.highResFix.setTristate(False)
 		self.highResFix.setCheckState(settings["highResFix"])
 		layout.addRow("High Resolution Fix",self.highResFix)
 
 		# Karras
 		self.karras = QCheckBox()
+		self.karras.setTristate(False)
 		self.karras.setCheckState(settings["karras"])
 		layout.addRow("Karras",self.karras)
 
@@ -228,9 +231,9 @@ class Dialog(QWidget):
 		mode = self.generationMode.checkedId()
 
 		if mode == self.worker.MODE_TEXT2IMG or mode == self.worker.MODE_INPAINTING:
-			self.initStrength.setEnabled(False)
+			self.denoise_strength.setEnabled(False)
 		elif mode == self.worker.MODE_IMG2IMG:
-			self.initStrength.setEnabled(True)
+			self.denoise_strength.setEnabled(True)
 
 	def generate(self):
 		mode = self.generationMode.checkedId()
@@ -291,7 +294,7 @@ class Dialog(QWidget):
 	def readSettings(self):
 		defaults = {
 			"generationMode": self.worker.MODE_TEXT2IMG,
-			"initStrength": 3,
+			"denoise_strength": 30,
 			"prompt": "",
 			"negativePrompt": "",
 			"promptStrength": 7,
@@ -328,7 +331,7 @@ class Dialog(QWidget):
 	def writeSettings(self):
 		settings = {
 			"generationMode": self.generationMode.checkedId(),
-			"initStrength": self.initStrength.value(),
+			"denoise_strength": self.denoise_strength.value(),
 			"prompt": self.prompt.toPlainText(),
 			"negativePrompt": self.negativePrompt.toPlainText(),
 			"promptStrength": self.promptStrength.value(),
@@ -354,7 +357,7 @@ class Dialog(QWidget):
 		self.modeInpainting.setEnabled(status)
 
 		if self.generationMode.checkedId() == self.worker.MODE_IMG2IMG:
-			self.initStrength.setEnabled(status)
+			self.denoise_strength.setEnabled(status)
 
 		self.promptStrength.setEnabled(status)
 		self.steps.setEnabled(status)

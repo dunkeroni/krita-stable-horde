@@ -200,7 +200,7 @@ class Worker():
             data.update({"source_image": init})
             data.update({"source_processing": "img2img"})
             params.update({"hires_fix": False})
-            params.update({"denoising_strength": round((1 - self.dialog.initStrength.value()/10), 1)})
+            params.update({"denoising_strength": self.dialog.denoise_strength.value()/100})
          elif mode == self.MODE_INPAINTING:
             init = self.getInitImage()
             models = ["stable_diffusion_inpainting"]

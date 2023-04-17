@@ -7,7 +7,7 @@ Please check HISTORY.md for the latest changes.
 ## Installation
 ### Krita
 
-The plugin has been tested in Krita 5.1.1.
+The plugin has been tested in Krita 5.1.3
 
 **IMPORTANT:** If you are running Linux, please make sure, you have webp support for Qt5 installed, as this is the image format stablehorde uses. Execute the following command to check, if it's already supported: ```python -c "from PyQt5.Qt import *; print([bytes(x).decode('ascii') for x in QImageReader.supportedImageFormats()])"```. To install it, use ```sudo pacman -S qt5-imageformats``` (Arch) or ```sudo apt install qt5-image-formats-plugins``` (Debian).
 
@@ -81,7 +81,5 @@ Now we are ready for generating images.
 
 ## FAQ
 **Why is the generated image smaller than the document?** Stable-diffusion only generates image sizes which are a multiple of 64. This means, if your document has a size of 650x512, the generated image will have a size of 640x512.
-
-**Will outpainting be supported?** Pretty likely outpainting will be supported. This depends on which features the stablehorde cluster supports.
 
 **How do I report an error or request a new feature?** Please open a new issue in this repository.

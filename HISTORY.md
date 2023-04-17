@@ -1,5 +1,8 @@
 # History
 ## Krita Plugin
+
+### For new changes, see commit log
+
 ### 1.3.4
 Changes
 - The generated images are now transferred via Cloudflare r2.

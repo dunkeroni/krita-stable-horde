@@ -43,5 +43,5 @@ Generate on Selection instead of whole file resolution
     Adjustable max resolution for non-square selections  
     Fit rectangle to next 64 multiple around selection  
     Auto-mask selection?  
-Settings window permanently fixed as toolbar  
+~~Settings window permanently fixed as toolbar~~  
 User info from API key (kudos, generation statistics, etc.)  

@@ -163,7 +163,9 @@ class Worker():
             "sampler_name": self.dialog.sampler.currentText(),
             "cfg_scale": self.dialog.promptStrength.value(),
             "steps": int(self.dialog.steps.value()),
-            "seed": self.dialog.seed.text()
+            "seed": self.dialog.seed.text(),
+            "hires_fix": self.dialog.highResFix.isChecked(),
+            "karras": self.dialog.karras.isChecked(),
          }
 
          data = {
@@ -197,6 +199,7 @@ class Worker():
             init = self.getInitImage()
             data.update({"source_image": init})
             data.update({"source_processing": "img2img"})
+            params.update({"hires_fix": False})
             params.update({"denoising_strength": round((1 - self.dialog.initStrength.value()/10), 1)})
          elif mode == self.MODE_INPAINTING:
             init = self.getInitImage()
@@ -204,6 +207,7 @@ class Worker():
             data.update({"source_image": init})
             data.update({"source_processing": "inpainting"})
             data.update({"models": models})
+            params.update({"hires_fix": False})
 
          data = json.dumps(data).encode("utf-8")
 

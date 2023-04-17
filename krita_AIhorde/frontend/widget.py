@@ -17,7 +17,7 @@ class Dialog(QWidget):
 		self.setWindowTitle("AI Horde")
 		self.layout = QVBoxLayout()
 
-		# Basic Tab
+		# ================Basic Tab================
 		tabBasic = QWidget()
 		layout = QFormLayout()
 
@@ -146,7 +146,7 @@ class Dialog(QWidget):
 
 		tabBasic.setLayout(layout)
 
-		# Advanced Tab
+		# ==============Advanced Tab================
 		tabAdvanced = QWidget()
 		layout = QFormLayout() #not robust, change to specify advanced and update layout calls later on
 
@@ -191,6 +191,16 @@ class Dialog(QWidget):
 		self.nsfw = QCheckBox()
 		self.nsfw.setCheckState(settings["nsfw"])
 		layout.addRow("NSFW",self.nsfw)
+
+		#HighResFix
+		self.highResFix = QCheckBox()
+		self.highResFix.setCheckState(settings["highResFix"])
+		layout.addRow("High Resolution Fix",self.highResFix)
+
+		# Karras
+		self.karras = QCheckBox()
+		self.karras.setCheckState(settings["karras"])
+		layout.addRow("Karras",self.karras)
 
 
 		tabAdvanced.setLayout(layout)
@@ -272,7 +282,6 @@ class Dialog(QWidget):
 				self.statusDisplay.setText("Done.")
 				self.setEnabledStatus(True)
 				
-
 	#override
 	def reject(self):
 		self.worker.cancel()
@@ -288,9 +297,11 @@ class Dialog(QWidget):
 			"promptStrength": 7,
 			"steps": 20,
 			"seed": "",
-			"nsfw": 1,
+			"nsfw": True,
 			"apikey": "",
-			"maxWait": 5
+			"maxWait": 5,
+			"highResFix": False,
+			"karras": True,
 		}
 
 		try:
@@ -325,7 +336,9 @@ class Dialog(QWidget):
 			"seed": self.seed.text(),
 			"nsfw": self.nsfw.checkState(),
 			"apikey": self.apikey.text(),
-			"maxWait": self.maxWait.value()
+			"maxWait": self.maxWait.value(),
+			"highResFix": self.highResFix.checkState(),
+			"karras": self.karras.checkState(),
 		}
 
 		try:

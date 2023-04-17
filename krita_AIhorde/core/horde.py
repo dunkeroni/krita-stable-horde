@@ -156,6 +156,13 @@ class Worker():
       self.id = None
       self.checkMax = (self.dialog.maxWait.value() * 60)/self.CHECK_WAIT
 
+      #post processing = [] if 'None' otherwise get value from dialog
+      post_processor = [self.dialog.postProcessing.currentText()] if self.dialog.postProcessing.currentText() != "None" else []
+      #same for upscaler
+      upscaler = [self.dialog.upscale.currentText()] if self.dialog.upscale.currentText() != "None" else []
+      #combine into a single list
+      post_process = post_processor + upscaler
+
       try:
          nsfw = True if self.dialog.nsfw.isChecked() else False
 
@@ -166,6 +173,8 @@ class Worker():
             "seed": self.dialog.seed.text(),
             "hires_fix": self.dialog.highResFix.isChecked(),
             "karras": self.dialog.karras.isChecked(),
+            "post_processing": post_process,
+            "facefixer_strength": self.dialog.facefixer_strength.value()/100,
             "clip_skip": self.dialog.clip_skip.value(),
          }
 

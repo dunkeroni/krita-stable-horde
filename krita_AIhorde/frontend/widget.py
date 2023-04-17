@@ -130,6 +130,37 @@ class Dialog(QWidget):
 		self.statusDisplay.setReadOnly(True)
 		layout.addRow("Status", self.statusDisplay)
 
+		# Post Processing combobox
+		self.postProcessing = QComboBox()
+		postProcessing_options = ['None', 'GFPGAN', 'CodeFormers', 'strip_background' ]
+		for postProcessing in postProcessing_options:
+			self.postProcessing.addItem(postProcessing)
+		self.postProcessing.setCurrentIndex(0)
+		layout.addRow("Post Processing", self.postProcessing)
+
+		# facefixer_strength
+		slider = QSlider(Qt.Orientation.Horizontal, self)
+		slider.setRange(0, 100)
+		slider.setTickInterval(1)
+		slider.setValue(75)
+		self.facefixer_strength = slider
+		labelfacefixer_strength = QLabel(str(self.facefixer_strength.value()/100))
+		self.facefixer_strength.valueChanged.connect(lambda: labelfacefixer_strength.setText(str(self.facefixer_strength.value()/100)))
+		layoutH = QHBoxLayout()
+		layoutH.addWidget(self.facefixer_strength)
+		layoutH.addWidget(labelfacefixer_strength)
+		container = QWidget()
+		container.setLayout(layoutH)
+		layout.addRow("Facefixer Strength", container)
+
+		# Upscaler combobox
+		self.upscale = QComboBox()
+		upscale_options = ['None', 'RealESRGAN_x4plus', 'RealESRGAN_x2plus', 'RealESRGAN_x4plus_anime_6B', 'NMKD_Siax', '4x_AnimeSharp' ]
+		for upscale in upscale_options:
+			self.upscale.addItem(upscale)
+		self.upscale.setCurrentIndex(0)
+		layout.addRow("Upscaler", self.upscale)
+		
 		# Generate
 		self.generateButton = QPushButton("Generate")
 		self.generateButton.clicked.connect(self.generate)

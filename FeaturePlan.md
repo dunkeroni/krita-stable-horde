@@ -1,6 +1,6 @@
 # Krita Stable Horde features
 List of existing and planned features  
-## Current Capabilities
+## Previous Capabilities
 1.0.0 - Forked from https://github.com/blueturtleai/krita-stable-diffusion - last commit 80b9a1d on Dec 12, 2022  
     Floating settings window  
         Modes: txt2img, img2img, inpainting  
@@ -30,7 +30,7 @@ Break krita_stablehorde.py into functional modules
 ### Advanced:
 ~~Highres Fix option~~  
 ~~Karras (default on)~~  
-Post Processors  
+~~Post Processors~~  
 ~~CLIP skip~~  
     added, but appears to be broken on the horde right now.  
 Premade prompts  

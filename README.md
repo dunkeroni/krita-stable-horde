@@ -36,20 +36,23 @@ Now we are ready for generating images.
       - **Image -> Image:** Generate an image based on an init image and on your prompt.
       - **Inpainting:** Erase a part of an image and generate a new image which has the erased part filled. The erased part is filled based on your prompt. To erase, select in Krita the eraser mode or use an eraser brush preset. If you make a selection, please make sure to remove this selection before generating by clicking on the image. 
 
-   - **NSFW:** If you want to send a prompt, which is excplicitly NSFW (Not Safe For Work). 
-      - If you flag your request as NSFW, only servers which accept NSFW prompts work on the request. If you don't flag the prompt, but it is NSFW, you will receive a black image.
-      - If you didn't flag your request as NSFW and don't prompt NSFW, you will receive in some cases a black image, although it's not NSFW (false positive). Just rerun the generation in that case.
+   - **Denoising:** How much the AI should change the current image (when using img2img). Actually affects the generative steps and starting point; a value of 0.3 will set up the stable diffusion pipeline with the input image and only "complete" the last 30% of the denoising process.
 
    - **Seed:** This parameter is optional. If it is empty, a random seed will be generated on the server. If you use a seed, the same image is generated again in the case the same parameters for init strength, steps, etc. are used. A slightly different image will be generated, if the parameters are modified. You find the seed as part of the layer name of the layer, where the generated image is displayed. 
 
    - **Prompt:** How the generated image should look like.
+
+   - **Negative Prompt:** What subjects the generated image should avoid.
+
+   - **Post Processing:** Face Fixer and background removal options. Facefixer Strenth will apply if a selection is made.
+
+   - **Upscaler:** Post process upscaler. Will use the selected upscaler to return a larger image than was requested.
 
    - **Generate:** Start image generation. The values you inserted into the dialog will be transmitted to the server, which dispatches the request now to one of the stable-diffusion servers in the cluster. Your generation request is added to the queue. You will see now the status "Queue position..." and all input elements of the dialog are disabled. Generation can take between several seconds and several minutes depending on how many other requests are already in the queue and how many stable diffusion servers joined currently the cluster.<br>When the image has been generated successfully, it will be shown as a new layer of the opened document. The used seed is shown as a part of the name of the new layer. If an error during generation occurs, the error message will be shown in the status textarea and all input elements will be enabled again.
 
    - **Cancel:** Close the dialog. If you cancel when you already started generation, generation will be stopped.
 
 **Advanced Tab**
-   - **Init Strength:** How much the AI should take the init image into account. The higher the value, the more will the generated image look like the init image. 0.3 is a good value to use.
 
    - **Prompt Strength:** How much the AI should follow the prompt. The higher the value, the more the AI will generate an image which looks like your prompt. 8 is a good value to use.
 
@@ -59,19 +62,25 @@ Now we are ready for generating images.
 
    - **Max Wait:** The maximum time in minutes you want to wait until image generation is finished. When the max time is reached, a timeout happens and the generation request is stopped.
 
+   - **CLIP Skip:** BROKEN? RESULTS FROM HORDE ARE NOT AFFECTED AT THIS TIME. Should skip the last few layers of the CLIP language translation model, effectively getting more consistent results with less precision. May improve some models that were trained with clip skip 2.
+
+   - **NSFW:** If you want to send a prompt, which is excplicitly NSFW (Not Safe For Work). 
+   - If you flag your request as NSFW, only servers which accept NSFW prompts work on the request. If you don't flag the prompt, but it is NSFW, you will receive a black image.
+   - If you didn't flag your request as NSFW and don't prompt NSFW, you will receive in some cases a black image, although it's not NSFW (false positive). Just rerun the generation in that case.
+
+   - **Karras:** Magic. Improves generation with fewer steps.
+
 ## Troubleshooting
 ### Linux
 - Please make sure, you have webp support for Qt5 installed, as this is the image format stablehorde uses. Execute the following command to check, if it's already supported: ```python -c "from PyQt5.Qt import *; print([bytes(x).decode('ascii') for x in QImageReader.supportedImageFormats()])"```. To install it, use ```sudo pacman -S qt5-imageformats``` (Arch) or ```sudo apt install qt5-image-formats-plugins``` (Debian).
 
 ## Limitations
 
-   - **Stability:** Stablehorde is still pretty new and under heavy development. So, it's not unlikely, that the servers are not available for some time or unexpected errors occur.
-
    - **Generation speed:** Stablehorde is a cluster of stable-diffusion servers run by volunteers. The generation speed depends on how many servers are in the cluster, which hardware they use and how many others want to generate with stablehorde. The upside is, that stablehorde is free to use, the downside that the generation speed is unpredictable.
 
    - **Privacy:** The privacy stablehorde offers is similar to generating in a public discord channel. So, please assume, that neither your prompts nor your generated images are private.
    
-   - **Features:** Currently text2img, img2img and inpainting are supported. As soon as stablehorde supports outpainting, this will be available in the plugin too.
+   - **Features:** Currently text2img, img2img and inpainting are supported. See FeaturePlan.md for a list of planned and available features.
 
 ## FAQ
 **Why is the generated image smaller than the document?** Stable-diffusion only generates image sizes which are a multiple of 64. This means, if your document has a size of 650x512, the generated image will have a size of 640x512.

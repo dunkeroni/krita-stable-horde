@@ -477,8 +477,8 @@ class Dialog(QWidget):
 			self.userID.setText(self.userInfo["username"])
 			self.kudos.setText(str(self.userInfo["kudos"]))
 			self.trusted.setText(str(self.userInfo["trusted"]))
-			self.requests.setText(str(self.userInfo["usage"]["requests"]))
-			self.contributions.setText(str(self.userInfo["contributions"]["fulfillments"]))
+			self.requests.setText(str(self.userInfo["records"]["request"]["image"]))
+			self.contributions.setText(str(self.userInfo["records"]["fulfillment"]["image"]))
 			
 		except urllib.error.HTTPError as e:
 			raise Exception(data)

@@ -17,243 +17,14 @@ class Dialog(QWidget):
 		self.setWindowTitle("AI Horde")
 		self.layout = QVBoxLayout()
 
-		# ================Basic Tab================
-		tabBasic = QWidget()
-		layout = QFormLayout()
-
-		# Generation Mode
-		box = QGroupBox()
-		self.modeText2Img = QRadioButton("Text -> Image")
-		self.modeImg2Img = QRadioButton("Image -> Image")
-		self.modeInpainting = QRadioButton("Inpainting")
-		layoutV = QVBoxLayout()
-		layoutV.addWidget(self.modeText2Img)
-		layoutV.addWidget(self.modeImg2Img)
-		layoutV.addWidget(self.modeInpainting)
-		box.setLayout(layoutV)
-		label = QLabel("Generation Mode")
-		label.setStyleSheet("QLabel{margin-top:12px;}")
-		layout.addRow(label, box)
-
-		group = QButtonGroup()
-		group.addButton(self.modeText2Img, self.worker.MODE_TEXT2IMG)
-		group.addButton(self.modeImg2Img, self.worker.MODE_IMG2IMG)
-		group.addButton(self.modeInpainting, self.worker.MODE_INPAINTING)
-		group.button(settings["generationMode"]).setChecked(True)
-		self.generationMode = group
-		self.generationMode.buttonClicked.connect(self.handleModeChanged)
-
-		mode = self.generationMode.checkedId()
-
-		# Denoise Strength
-		slider = QSlider(Qt.Orientation.Horizontal, self)
-		slider.setRange(0, 100)
-		slider.setTickInterval(1)
-		slider.setValue(settings["denoise_strength"])
-		self.denoise_strength = slider
-		labeldenoise_strength = QLabel(str(self.denoise_strength.value()/100))
-		self.denoise_strength.valueChanged.connect(lambda: labeldenoise_strength.setText(str(self.denoise_strength.value()/100)))
-		layoutH = QHBoxLayout()
-		layoutH.addWidget(self.denoise_strength)
-		layoutH.addWidget(labeldenoise_strength)
-		container = QWidget()
-		container.setLayout(layoutH)
-		layout.addRow("Denoising", container)
-
-		if mode == worker.MODE_TEXT2IMG or mode == worker.MODE_INPAINTING:
-			self.denoise_strength.setEnabled(False)
-
-		# Seed
-		self.seed = QLineEdit()
-		self.seed.setText(settings["seed"])
-		layout.addRow("Seed (optional)", self.seed)
-
-		# Model
-		self.model = QComboBox()
-		#get a list of models from the server
-		try:
-			response = urllib.request.urlopen("https://stablehorde.net/api/v2/status/models")
-			models = json.loads(response.read())
-			
-			#sort models based on Count
-			models = sorted(models, key=lambda k: k['count'], reverse=True)
-
-			#add to combobox
-			for model in models:
-				self.model.addItem(model["name"] + " (" + str(model["count"]) + ")", model["name"])
-		except Exception as ex:
-			self.utils.errorMessage("Error", "Could not connect to the server to get a list of models.")
-			self.reject()
-		self.model.setCurrentIndex(0)
-		layout.addRow("Model", self.model)
-
-		# sampler
-		self.sampler = QComboBox()
-		self.sampler_options = [ 'k_lms', 'k_heun', 'k_euler', 'k_euler_a', 'k_dpm_2', 'k_dpm_2_a', 'k_dpm_fast', 'k_dpm_adaptive', 'k_dpmpp_2s_a', 'k_dpmpp_2m', 'dpmsolver', 'k_dpmpp_sde', 'DDIM' ]
-		for sampler in self.sampler_options:
-			self.sampler.addItem(sampler)
-		self.sampler.setCurrentIndex(3)
-		layout.addRow("Sampler", self.sampler)
-
-		# Steps
-		slider = QSlider(Qt.Orientation.Horizontal, self)
-		slider.setRange(10, 150)
-		slider.setTickInterval(1)
-		slider.setValue(settings["steps"])
-		self.steps = slider
-		labelSteps = QLabel(str(self.steps.value()))
-		self.steps.valueChanged.connect(lambda: labelSteps.setText(str(self.steps.value())))
-		layoutH = QHBoxLayout()
-		layoutH.addWidget(self.steps)
-		layoutH.addWidget(labelSteps)
-		container = QWidget()
-		container.setLayout(layoutH)
-		layout.addRow("Steps", container)
+		tabBasic = self.setupBasicTab(settings)
+		tabAdvanced = self.setupAdvancedTab(settings)
+		tabUser = self.setupUserTab(settings)
 		
-		#HighResFix
-		self.highResFix = QCheckBox()
-		self.highResFix.setChecked(settings["highResFix"])
-		layout.addRow("High Resolution Fix",self.highResFix)
-
-		# Prompt
-		self.prompt = QTextEdit()
-		self.prompt.setText(settings["prompt"])
-		layout.addRow("Prompt", self.prompt)
-
-		# Negative Prompt
-		self.negativePrompt = QTextEdit()
-		self.negativePrompt.setText(settings["negativePrompt"])
-		layout.addRow("Negative Prompt", self.negativePrompt)
-
-		# Status
-		self.statusDisplay = QTextEdit()
-		self.statusDisplay.setReadOnly(True)
-		layout.addRow("Status", self.statusDisplay)
-
-		# Post Processing combobox
-		self.postProcessing = QComboBox()
-		postProcessing_options = ['None', 'GFPGAN', 'CodeFormers', 'strip_background' ]
-		for postProcessing in postProcessing_options:
-			self.postProcessing.addItem(postProcessing)
-		self.postProcessing.setCurrentIndex(0)
-		layout.addRow("Post Processing", self.postProcessing)
-
-		# facefixer_strength
-		slider = QSlider(Qt.Orientation.Horizontal, self)
-		slider.setRange(0, 100)
-		slider.setTickInterval(1)
-		slider.setValue(75)
-		self.facefixer_strength = slider
-		labelfacefixer_strength = QLabel(str(self.facefixer_strength.value()/100))
-		self.facefixer_strength.valueChanged.connect(lambda: labelfacefixer_strength.setText(str(self.facefixer_strength.value()/100)))
-		layoutH = QHBoxLayout()
-		layoutH.addWidget(self.facefixer_strength)
-		layoutH.addWidget(labelfacefixer_strength)
-		container = QWidget()
-		container.setLayout(layoutH)
-		layout.addRow("Facefixer Strength", container)
-
-		# Upscaler combobox
-		self.upscale = QComboBox()
-		upscale_options = ['None', 'RealESRGAN_x4plus', 'RealESRGAN_x2plus', 'RealESRGAN_x4plus_anime_6B', 'NMKD_Siax', '4x_AnimeSharp' ]
-		for upscale in upscale_options:
-			self.upscale.addItem(upscale)
-		self.upscale.setCurrentIndex(0)
-		layout.addRow("Upscaler", self.upscale)
-		
-		# Generate
-		self.generateButton = QPushButton("Generate")
-		self.generateButton.clicked.connect(self.generate)
-		layout.addWidget(self.generateButton)
-
-		# Space
-		layoutH = QHBoxLayout()
-		layoutH.addSpacing(50)
-		container = QWidget()
-		container.setLayout(layoutH)
-		layout.addWidget(container)
-
-		# Cancel
-		cancelButton = QPushButton("Cancel")
-		cancelButton.setFixedWidth(100)
-		cancelButton.clicked.connect(self.reject)
-		layout.addWidget(cancelButton)
-		layout.setAlignment(cancelButton, Qt.AlignRight)
-
-		tabBasic.setLayout(layout)
-
-		# ==============Advanced Tab================
-		tabAdvanced = QWidget()
-		layout = QFormLayout() #not robust, change to specify advanced and update layout calls later on
-
-		# Prompt Strength
-		slider = QSlider(Qt.Orientation.Horizontal, self)
-		slider.setRange(0, 20)
-		slider.setTickInterval(1)
-		slider.setValue(settings["promptStrength"])
-		self.promptStrength = slider
-		labelPromptStrength = QLabel(str(self.promptStrength.value()))
-		self.promptStrength.valueChanged.connect(lambda: labelPromptStrength.setText(str(self.promptStrength.value())))
-		layoutH = QHBoxLayout()
-		layoutH.addWidget(self.promptStrength)
-		layoutH.addWidget(labelPromptStrength)
-		container = QWidget()
-		container.setLayout(layoutH)
-		layout.addRow("CFG", container)
-
-		# API Key
-		self.apikey = QLineEdit()
-		self.apikey.setText(settings["apikey"])
-		#make the apikey text hidden
-		self.apikey.setEchoMode(QLineEdit.Password)
-		layout.addRow("API Key (optional)", self.apikey)
-
-		# Max Wait
-		slider = QSlider(Qt.Orientation.Horizontal, self)
-		slider.setRange(1, 5)
-		slider.setTickInterval(1)
-		slider.setValue(settings["maxWait"])
-		self.maxWait = slider
-		labelMaxWait = QLabel(str(self.maxWait.value()))
-		self.maxWait.valueChanged.connect(lambda: labelMaxWait.setText(str(self.maxWait.value())))
-		layoutH = QHBoxLayout()
-		layoutH.addWidget(self.maxWait)
-		layoutH.addWidget(labelMaxWait)
-		container = QWidget()
-		container.setLayout(layoutH)
-		layout.addRow("Max Wait (minutes)", container)
-
-		#clip_skip slider
-		slider = QSlider(Qt.Orientation.Horizontal, self)
-		slider.setRange(1, 12)
-		slider.setTickInterval(1)
-		slider.setValue(settings["clip_skip"])
-		self.clip_skip = slider
-		labelClipSkip = QLabel(str(self.clip_skip.value()))
-		self.clip_skip.valueChanged.connect(lambda: labelClipSkip.setText(str(self.clip_skip.value())))
-		layoutH = QHBoxLayout()
-		layoutH.addWidget(self.clip_skip)
-		layoutH.addWidget(labelClipSkip)
-		container = QWidget()
-		container.setLayout(layoutH)
-		layout.addRow("Clip Skip (broken)", container)
-		
-		# NSFW
-		self.nsfw = QCheckBox()
-		self.nsfw.setChecked(settings["nsfw"])
-		layout.addRow("NSFW",self.nsfw)
-
-		# Karras
-		self.karras = QCheckBox()
-		self.karras.setChecked(settings["karras"])
-		layout.addRow("Karras",self.karras)
-
-
-		tabAdvanced.setLayout(layout)
-
 		tabs = QTabWidget()
 		tabs.addTab(tabBasic, "Basic")
 		tabs.addTab(tabAdvanced, "Advanced")
+		tabs.addTab(tabUser, "User")
 		self.layout.addWidget(tabs)
 
 		self.setLayout(self.layout)
@@ -412,3 +183,302 @@ class Dialog(QWidget):
 		self.apikey.setEnabled(status)
 		self.maxWait.setEnabled(status)
 		self.generateButton.setEnabled(status)
+
+	def setupBasicTab(self, settings):
+		# ================ Basic Tab ================
+		tabBasic = QWidget()
+		layout = QFormLayout()
+
+		# Generation Mode
+		box = QGroupBox()
+		self.modeText2Img = QRadioButton("Text -> Image")
+		self.modeImg2Img = QRadioButton("Image -> Image")
+		self.modeInpainting = QRadioButton("Inpainting")
+		layoutV = QVBoxLayout()
+		layoutV.addWidget(self.modeText2Img)
+		layoutV.addWidget(self.modeImg2Img)
+		layoutV.addWidget(self.modeInpainting)
+		box.setLayout(layoutV)
+		label = QLabel("Generation Mode")
+		label.setStyleSheet("QLabel{margin-top:12px;}")
+		layout.addRow(label, box)
+
+		group = QButtonGroup()
+		group.addButton(self.modeText2Img, self.worker.MODE_TEXT2IMG)
+		group.addButton(self.modeImg2Img, self.worker.MODE_IMG2IMG)
+		group.addButton(self.modeInpainting, self.worker.MODE_INPAINTING)
+		group.button(settings["generationMode"]).setChecked(True)
+		self.generationMode = group
+		self.generationMode.buttonClicked.connect(self.handleModeChanged)
+
+		mode = self.generationMode.checkedId()
+
+		# Denoise Strength
+		slider = QSlider(Qt.Orientation.Horizontal, self)
+		slider.setRange(0, 100)
+		slider.setTickInterval(1)
+		slider.setValue(settings["denoise_strength"])
+		self.denoise_strength = slider
+		labeldenoise_strength = QLabel(str(self.denoise_strength.value()/100))
+		self.denoise_strength.valueChanged.connect(lambda: labeldenoise_strength.setText(str(self.denoise_strength.value()/100)))
+		layoutH = QHBoxLayout()
+		layoutH.addWidget(self.denoise_strength)
+		layoutH.addWidget(labeldenoise_strength)
+		container = QWidget()
+		container.setLayout(layoutH)
+		layout.addRow("Denoising", container)
+
+		if mode == self.worker.MODE_TEXT2IMG or mode == self.worker.MODE_INPAINTING:
+			self.denoise_strength.setEnabled(False)
+
+		# Seed
+		self.seed = QLineEdit()
+		self.seed.setText(settings["seed"])
+		layout.addRow("Seed (optional)", self.seed)
+
+		# Model
+		self.model = QComboBox()
+		#get a list of models from the server
+		try:
+			response = urllib.request.urlopen("https://stablehorde.net/api/v2/status/models")
+			models = json.loads(response.read())
+			
+			#sort models based on Count
+			models = sorted(models, key=lambda k: k['count'], reverse=True)
+
+			#add to combobox
+			for model in models:
+				self.model.addItem(model["name"] + " (" + str(model["count"]) + ")", model["name"])
+		except Exception as ex:
+			self.utils.errorMessage("Error", "Could not connect to the server to get a list of models.")
+			self.reject()
+		self.model.setCurrentIndex(0)
+		layout.addRow("Model", self.model)
+
+		# sampler
+		self.sampler = QComboBox()
+		self.sampler_options = [ 'k_lms', 'k_heun', 'k_euler', 'k_euler_a', 'k_dpm_2', 'k_dpm_2_a', 'k_dpm_fast', 'k_dpm_adaptive', 'k_dpmpp_2s_a', 'k_dpmpp_2m', 'dpmsolver', 'k_dpmpp_sde', 'DDIM' ]
+		for sampler in self.sampler_options:
+			self.sampler.addItem(sampler)
+		self.sampler.setCurrentIndex(3)
+		layout.addRow("Sampler", self.sampler)
+
+		# Steps
+		slider = QSlider(Qt.Orientation.Horizontal, self)
+		slider.setRange(10, 150)
+		slider.setTickInterval(1)
+		slider.setValue(settings["steps"])
+		self.steps = slider
+		labelSteps = QLabel(str(self.steps.value()))
+		self.steps.valueChanged.connect(lambda: labelSteps.setText(str(self.steps.value())))
+		layoutH = QHBoxLayout()
+		layoutH.addWidget(self.steps)
+		layoutH.addWidget(labelSteps)
+		container = QWidget()
+		container.setLayout(layoutH)
+		layout.addRow("Steps", container)
+		
+		#HighResFix
+		self.highResFix = QCheckBox()
+		self.highResFix.setChecked(settings["highResFix"])
+		layout.addRow("High Resolution Fix",self.highResFix)
+
+		# Prompt
+		self.prompt = QTextEdit()
+		self.prompt.setText(settings["prompt"])
+		layout.addRow("Prompt", self.prompt)
+
+		# Negative Prompt
+		self.negativePrompt = QTextEdit()
+		self.negativePrompt.setText(settings["negativePrompt"])
+		layout.addRow("Negative Prompt", self.negativePrompt)
+
+		# Status
+		self.statusDisplay = QTextEdit()
+		self.statusDisplay.setReadOnly(True)
+		layout.addRow("Status", self.statusDisplay)
+
+		# Post Processing combobox
+		self.postProcessing = QComboBox()
+		postProcessing_options = ['None', 'GFPGAN', 'CodeFormers', 'strip_background' ]
+		for postProcessing in postProcessing_options:
+			self.postProcessing.addItem(postProcessing)
+		self.postProcessing.setCurrentIndex(0)
+		layout.addRow("Post Processing", self.postProcessing)
+
+		# facefixer_strength
+		slider = QSlider(Qt.Orientation.Horizontal, self)
+		slider.setRange(0, 100)
+		slider.setTickInterval(1)
+		slider.setValue(75)
+		self.facefixer_strength = slider
+		labelfacefixer_strength = QLabel(str(self.facefixer_strength.value()/100))
+		self.facefixer_strength.valueChanged.connect(lambda: labelfacefixer_strength.setText(str(self.facefixer_strength.value()/100)))
+		layoutH = QHBoxLayout()
+		layoutH.addWidget(self.facefixer_strength)
+		layoutH.addWidget(labelfacefixer_strength)
+		container = QWidget()
+		container.setLayout(layoutH)
+		layout.addRow("Facefixer Strength", container)
+
+		# Upscaler combobox
+		self.upscale = QComboBox()
+		upscale_options = ['None', 'RealESRGAN_x4plus', 'RealESRGAN_x2plus', 'RealESRGAN_x4plus_anime_6B', 'NMKD_Siax', '4x_AnimeSharp' ]
+		for upscale in upscale_options:
+			self.upscale.addItem(upscale)
+		self.upscale.setCurrentIndex(0)
+		layout.addRow("Upscaler", self.upscale)
+		
+		# Generate
+		self.generateButton = QPushButton("Generate")
+		self.generateButton.clicked.connect(self.generate)
+		layout.addWidget(self.generateButton)
+
+		# Space
+		layoutH = QHBoxLayout()
+		layoutH.addSpacing(50)
+		container = QWidget()
+		container.setLayout(layoutH)
+		layout.addWidget(container)
+
+		# Cancel
+		cancelButton = QPushButton("Cancel")
+		cancelButton.setFixedWidth(100)
+		cancelButton.clicked.connect(self.reject)
+		layout.addWidget(cancelButton)
+		layout.setAlignment(cancelButton, Qt.AlignRight)
+
+		tabBasic.setLayout(layout)
+
+		return tabBasic
+
+	def setupAdvancedTab(self, settings):
+		# ==============Advanced Tab================
+		tabAdvanced = QWidget()
+		layout = QFormLayout()
+
+		# Prompt Strength
+		slider = QSlider(Qt.Orientation.Horizontal, self)
+		slider.setRange(0, 20)
+		slider.setTickInterval(1)
+		slider.setValue(settings["promptStrength"])
+		self.promptStrength = slider
+		labelPromptStrength = QLabel(str(self.promptStrength.value()))
+		self.promptStrength.valueChanged.connect(lambda: labelPromptStrength.setText(str(self.promptStrength.value())))
+		layoutH = QHBoxLayout()
+		layoutH.addWidget(self.promptStrength)
+		layoutH.addWidget(labelPromptStrength)
+		container = QWidget()
+		container.setLayout(layoutH)
+		layout.addRow("CFG", container)
+
+		# Max Wait
+		slider = QSlider(Qt.Orientation.Horizontal, self)
+		slider.setRange(1, 5)
+		slider.setTickInterval(1)
+		slider.setValue(settings["maxWait"])
+		self.maxWait = slider
+		labelMaxWait = QLabel(str(self.maxWait.value()))
+		self.maxWait.valueChanged.connect(lambda: labelMaxWait.setText(str(self.maxWait.value())))
+		layoutH = QHBoxLayout()
+		layoutH.addWidget(self.maxWait)
+		layoutH.addWidget(labelMaxWait)
+		container = QWidget()
+		container.setLayout(layoutH)
+		layout.addRow("Max Wait (minutes)", container)
+
+		#clip_skip slider
+		slider = QSlider(Qt.Orientation.Horizontal, self)
+		slider.setRange(1, 12)
+		slider.setTickInterval(1)
+		slider.setValue(settings["clip_skip"])
+		self.clip_skip = slider
+		labelClipSkip = QLabel(str(self.clip_skip.value()))
+		self.clip_skip.valueChanged.connect(lambda: labelClipSkip.setText(str(self.clip_skip.value())))
+		layoutH = QHBoxLayout()
+		layoutH.addWidget(self.clip_skip)
+		layoutH.addWidget(labelClipSkip)
+		container = QWidget()
+		container.setLayout(layoutH)
+		layout.addRow("Clip Skip (broken)", container)
+		
+		# NSFW
+		self.nsfw = QCheckBox()
+		self.nsfw.setChecked(settings["nsfw"])
+		layout.addRow("NSFW",self.nsfw)
+
+		# Karras
+		self.karras = QCheckBox()
+		self.karras.setChecked(settings["karras"])
+		layout.addRow("Karras",self.karras)
+
+
+		tabAdvanced.setLayout(layout)
+		return tabAdvanced
+	
+	def setupUserTab(self, settings):
+		tabUser = QWidget()
+		layout = QFormLayout()
+
+		# API Key
+		self.apikey = QLineEdit()
+		self.apikey.setText(settings["apikey"])
+		#make the apikey text hidden
+		self.apikey.setEchoMode(QLineEdit.Password)
+		layout.addRow("API Key (optional)", self.apikey)
+
+		#user ID
+		self.userID = QLineEdit()
+		self.userID.setReadOnly(True)
+		layout.addRow("User ID", self.userID)
+
+		#kudos
+		self.kudos = QLineEdit()
+		self.kudos.setReadOnly(True)
+		layout.addRow("Kudos", self.kudos)
+
+		#trusted
+		self.trusted = QLineEdit()
+		self.trusted.setReadOnly(True)
+		layout.addRow("Trusted", self.trusted)
+
+		# usage["requests"]
+		self.requests = QLineEdit()
+		self.requests.setReadOnly(True)
+		layout.addRow("Requests", self.requests)
+
+		# usage["contributions"]
+		self.contributions = QLineEdit()
+		self.contributions.setReadOnly(True)
+		layout.addRow("Contributions", self.contributions)
+
+		#add a refresh button
+		self.refreshUserButton = QPushButton("Refresh")
+		self.refreshUserButton.clicked.connect(self.updateUserInfo)
+		layout.addRow(self.refreshUserButton)
+
+		self.updateUserInfo() #populate actual values if they exist
+
+		tabUser.setLayout(layout)
+
+		return tabUser
+	
+	def updateUserInfo(self):
+		#get user info from server with the find_user API call
+		apikey = "0000000000" if self.apikey.text() == "" else self.apikey.text()
+		headers = {"Content-Type": "application/json", "Accept": "application/json", "apikey": apikey, "Client-Agent": "dunkeroni's crappy Krita plugin"}
+		url="https://stablehorde.net/api/v2/find_user"
+		request = urllib.request.Request(url=url, headers=headers)
+		response = urllib.request.urlopen(request)
+		data = response.read()
+		try:
+			self.userInfo = json.loads(data)
+			#update values from userInfo
+			self.userID.setText(self.userInfo["username"])
+			self.kudos.setText(str(self.userInfo["kudos"]))
+			self.trusted.setText(str(self.userInfo["trusted"]))
+			self.requests.setText(str(self.userInfo["usage"]["requests"]))
+			self.contributions.setText(str(self.userInfo["contributions"]["fulfillments"]))
+			
+		except urllib.error.HTTPError as e:
+			raise Exception(data)

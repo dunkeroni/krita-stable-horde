@@ -222,7 +222,7 @@ class Worker():
          data = json.dumps(data).encode("utf-8")
 
          apikey = "0000000000" if self.dialog.apikey.text() == "" else self.dialog.apikey.text()
-         headers = {"Content-Type": "application/json", "Accept": "application/json", "apikey": apikey}
+         headers = {"Content-Type": "application/json", "Accept": "application/json", "apikey": apikey, "Client-Agent": "dunkeroni's crappy Krita plugin"}
 
          url = self.API_ROOT + "generate/async"
 

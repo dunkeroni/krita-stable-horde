@@ -45,4 +45,4 @@ Generate on Selection instead of whole file resolution
     Fit rectangle to next 64 multiple around selection  
     Auto-mask selection?  
 ~~Settings window permanently fixed as toolbar~~  
-User info from API key (kudos, generation statistics, etc.)  
+~~User info from API key (kudos, generation statistics, etc.)~~  

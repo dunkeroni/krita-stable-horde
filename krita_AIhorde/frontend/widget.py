@@ -4,6 +4,7 @@ from krita import *
 import json
 import urllib.request
 from ..misc import utility
+from ..core import hordeAPI
 
 
 class Dialog(QWidget):
@@ -55,27 +56,27 @@ class Dialog(QWidget):
 
 		# no document
 		if doc is None:
-			self.utils.errorMessage("Please open a document. Please check details.", "For image generation a document with a size between 384x384 and 1024x1024, color model 'RGB/Alpha', color depth '8-bit integer' and a paint layer is needed.")
+			utility.errorMessage("Please open a document. Please check details.", "For image generation a document with a size between 384x384 and 1024x1024, color model 'RGB/Alpha', color depth '8-bit integer' and a paint layer is needed.")
 			return
 		# document has invalid color model or depth
 		elif doc.colorModel() != "RGBA" or doc.colorDepth() != "U8":
-			self.errorMessage("Invalid document properties. Please check details.", "For image generation a document with color model 'RGB/Alpha', color depth '8-bit integer' is needed.")
+			utility.errorMessage("Invalid document properties. Please check details.", "For image generation a document with color model 'RGB/Alpha', color depth '8-bit integer' is needed.")
 			return
 		# document too small or large
 		elif doc.width() < 384 or doc.width() > 1024 or doc.height() < 384 or doc.height() > 1024:
-			self.errorMessage("Invalid document size. Please check details.", "Document needs to be between 384x384 and 1024x1024.")
+			utility.errorMessage("Invalid document size. Please check details.", "Document needs to be between 384x384 and 1024x1024.")
 			return
 		# img2img/inpainting: missing init image layer
 		elif (mode == self.worker.MODE_IMG2IMG or mode == self.worker.MODE_INPAINTING) and self.worker.getInitNode() is None:
-			self.errorMessage("Please add a visible layer which shows the init/inpainting image.", "")
+			utility.errorMessage("Please add a visible layer which shows the init/inpainting image.", "")
 			return
 		# img2img/inpainting: selection has to be removed otherwise crashes krita when creating init image
 		elif (mode == self.worker.MODE_IMG2IMG or mode == self.worker.MODE_INPAINTING) and doc.selection() is not None:
-			self.errorMessage("Please remove the selection by clicking on the image.", "")
+			utility.errorMessage("Please remove the selection by clicking on the image.", "")
 			return
 		# no prompt
 		elif len(self.prompt.toPlainText()) == 0:
-			self.errorMessage("Please enter a prompt.", "")
+			utility.errorMessage("Please enter a prompt.", "")
 			return
 		else:
 			self.writeSettings()
@@ -117,7 +118,6 @@ class Dialog(QWidget):
 			"nsfw": True,
 			"apikey": "",
 			"maxWait": 5,
-			"highResFix": False,
 			"karras": True,
 			"clip_skip": 1,
 		}
@@ -155,7 +155,6 @@ class Dialog(QWidget):
 			"nsfw": self.nsfw.checkState(),
 			"apikey": self.apikey.text(),
 			"maxWait": self.maxWait.value(),
-			"highResFix": self.highResFix.checkState(),
 			"karras": self.karras.checkState(),
 			"clip_skip": self.clip_skip.value(),
 		}
@@ -239,19 +238,11 @@ class Dialog(QWidget):
 		# Model
 		self.model = QComboBox()
 		#get a list of models from the server
-		try:
-			response = urllib.request.urlopen("https://stablehorde.net/api/v2/status/models")
-			models = json.loads(response.read())
-			
-			#sort models based on Count
-			models = sorted(models, key=lambda k: k['count'], reverse=True)
+		models = hordeAPI.status_models()
 
-			#add to combobox
-			for model in models:
-				self.model.addItem(model["name"] + " (" + str(model["count"]) + ")", model["name"])
-		except Exception as ex:
-			self.utils.errorMessage("Error", "Could not connect to the server to get a list of models.")
-			self.reject()
+		#add to combobox
+		for model in models:
+			self.model.addItem(model["name"] + " (" + str(model["count"]) + ")", model["name"])
 		self.model.setCurrentIndex(0)
 		layout.addRow("Model", self.model)
 
@@ -280,7 +271,7 @@ class Dialog(QWidget):
 		
 		#HighResFix
 		self.highResFix = QCheckBox()
-		self.highResFix.setChecked(settings["highResFix"])
+		self.highResFix.setChecked(False)
 		layout.addRow("High Resolution Fix",self.highResFix)
 
 		# Prompt
@@ -465,20 +456,11 @@ class Dialog(QWidget):
 	
 	def updateUserInfo(self):
 		#get user info from server with the find_user API call
-		apikey = "0000000000" if self.apikey.text() == "" else self.apikey.text()
-		headers = {"Content-Type": "application/json", "Accept": "application/json", "apikey": apikey, "Client-Agent": "dunkeroni's crappy Krita plugin"}
-		url="https://stablehorde.net/api/v2/find_user"
-		request = urllib.request.Request(url=url, headers=headers)
-		response = urllib.request.urlopen(request)
-		data = response.read()
-		try:
-			self.userInfo = json.loads(data)
-			#update values from userInfo
+		self.userInfo = hordeAPI.find_user(self.apikey.text())
+		#update values from userInfo
+		if self.userInfo:
 			self.userID.setText(self.userInfo["username"])
 			self.kudos.setText(str(self.userInfo["kudos"]))
 			self.trusted.setText(str(self.userInfo["trusted"]))
 			self.requests.setText(str(self.userInfo["records"]["request"]["image"]))
 			self.contributions.setText(str(self.userInfo["records"]["fulfillment"]["image"]))
-			
-		except urllib.error.HTTPError as e:
-			raise Exception(data)

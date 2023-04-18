@@ -11,6 +11,7 @@ import math
 import re
 
 from ..misc import utility
+from ..core import hordeAPI
 
 class Worker():
    API_ROOT = "https://stablehorde.net/api/v2/"
@@ -163,100 +164,72 @@ class Worker():
       #combine into a single list
       post_process = post_processor + upscaler
 
-      try:
-         nsfw = True if self.dialog.nsfw.isChecked() else False
+      nsfw = True if self.dialog.nsfw.isChecked() else False
 
-         params = {
-            "sampler_name": self.dialog.sampler.currentText(),
-            "cfg_scale": self.dialog.promptStrength.value(),
-            "steps": int(self.dialog.steps.value()),
-            "seed": self.dialog.seed.text(),
-            "hires_fix": self.dialog.highResFix.isChecked(),
-            "karras": self.dialog.karras.isChecked(),
-            "post_processing": post_process,
-            "facefixer_strength": self.dialog.facefixer_strength.value()/100,
-            "clip_skip": self.dialog.clip_skip.value(),
-         }
+      params = {
+         "sampler_name": self.dialog.sampler.currentText(),
+         "cfg_scale": self.dialog.promptStrength.value(),
+         "steps": int(self.dialog.steps.value()),
+         "seed": self.dialog.seed.text(),
+         "hires_fix": self.dialog.highResFix.isChecked(),
+         "karras": self.dialog.karras.isChecked(),
+         "post_processing": post_process,
+         "facefixer_strength": self.dialog.facefixer_strength.value()/100,
+         "clip_skip": self.dialog.clip_skip.value(),
+      }
 
-         data = {
-            #append negative prompt only if it is not empty
-            "prompt": self.dialog.prompt.toPlainText() + (" ### " + self.dialog.negativePrompt.toPlainText() if self.dialog.negativePrompt.toPlainText() != "" else ""),
-            "params": params,
-            "nsfw": nsfw,
-            "censor_nsfw": False,
-            "r2": True,
-            "models": [self.dialog.model.currentData()]
-         }
+      data = {
+         #append negative prompt only if it is not empty
+         "prompt": self.dialog.prompt.toPlainText() + (" ### " + self.dialog.negativePrompt.toPlainText() if self.dialog.negativePrompt.toPlainText() != "" else ""),
+         "params": params,
+         "nsfw": nsfw,
+         "censor_nsfw": False,
+         "r2": True,
+         "models": [self.dialog.model.currentData()]
+      }
 
-         doc = Application.activeDocument()
+      doc = Application.activeDocument()
 
-         if doc.width() % 64 != 0:
-            width = math.floor(doc.width()/64) * 64
-         else:
-            width = doc.width()
+      if doc.width() % 64 != 0:
+         width = math.floor(doc.width()/64) * 64
+      else:
+         width = doc.width()
 
-         if doc.height() % 64 != 0:
-            height = math.floor(doc.height()/64) * 64
-         else:
-            height = doc.height()
+      if doc.height() % 64 != 0:
+         height = math.floor(doc.height()/64) * 64
+      else:
+         height = doc.height()
 
-         params.update({"width": width})
-         params.update({"height": height})
+      params.update({"width": width})
+      params.update({"height": height})
 
-         mode = self.dialog.generationMode.checkedId()
+      mode = self.dialog.generationMode.checkedId()
 
-         if mode == self.MODE_IMG2IMG:
-            init = self.getInitImage()
-            data.update({"source_image": init})
-            data.update({"source_processing": "img2img"})
-            params.update({"hires_fix": False})
-            params.update({"denoising_strength": self.dialog.denoise_strength.value()/100})
-         elif mode == self.MODE_INPAINTING:
-            init = self.getInitImage()
-            models = ["stable_diffusion_inpainting"]
-            data.update({"source_image": init})
-            data.update({"source_processing": "inpainting"})
-            data.update({"models": models})
-            params.update({"hires_fix": False})
+      if mode == self.MODE_IMG2IMG:
+         init = self.getInitImage()
+         data.update({"source_image": init})
+         data.update({"source_processing": "img2img"})
+         params.update({"hires_fix": False})
+         params.update({"denoising_strength": self.dialog.denoise_strength.value()/100})
+      elif mode == self.MODE_INPAINTING:
+         init = self.getInitImage()
+         models = ["stable_diffusion_inpainting"]
+         data.update({"source_image": init})
+         data.update({"source_processing": "inpainting"})
+         data.update({"models": models})
+         params.update({"hires_fix": False})
 
-         data = json.dumps(data).encode("utf-8")
+      apikey = "0000000000" if self.dialog.apikey.text() == "" else self.dialog.apikey.text()
+      jobInfo = hordeAPI.generate_async(data, apikey) #submit request for async generation
 
-         apikey = "0000000000" if self.dialog.apikey.text() == "" else self.dialog.apikey.text()
-         headers = {"Content-Type": "application/json", "Accept": "application/json", "apikey": apikey, "Client-Agent": "dunkeroni's crappy Krita plugin"}
-
-         url = self.API_ROOT + "generate/async"
-
-         request = urllib.request.Request(url=url, data=data, headers=headers)
-         self.dialog.statusDisplay.setText("Waiting for generated image...")
-
-         response = urllib.request.urlopen(request)
-         data = response.read()
-
-         try:
-            data = json.loads(data)
-            self.id = data["id"]
-         except Exception as ex:
-            raise Exception(data)
-
-         self.checkStatus()
-      except urllib.error.HTTPError as ex:
-         try:
-            data = ex.read()
-            data = json.loads(data)
-
-            if "message" in data:
-               message = data["message"]
-            else:
-               message = str(ex)
-         except Exception:
-            message = str(ex)
-
-         ev = utility.UpdateEvent(self.eventId, utility.UpdateEvent.TYPE_ERROR, message)
-         QApplication.postEvent(self.dialog, ev)
-      except Exception as ex:
-         ev = utility.UpdateEvent(self.eventId, utility.UpdateEvent.TYPE_ERROR, str(ex))
-         QApplication.postEvent(self.dialog, ev)
-
+      #jobInfo will only have a "message" field and no "id" field if the request failed
+      if "id" in jobInfo:
+         self.id = jobInfo["id"]
+      else:
+         self.cancel()
+         utility.errorMessage("horde.generate()", str(jobInfo))
+      
+      self.checkStatus() #start checking status of the job, repeats every CHECK_WAIT seconds
       return
 
    def cancel(self):

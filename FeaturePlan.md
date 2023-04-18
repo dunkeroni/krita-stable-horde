@@ -13,6 +13,7 @@ List of existing and planned features
 ### Organization:
 ~~Move everything out of a single file~~  
 Clean up structure dependencies to make more sense  
+Centralize API calls  
 ~~Hide API key by default~~  
 Break krita_stablehorde.py into functional modules  
     Current image + settings ==> Resolve image/mask/mode ==> preformat image scaling ==> send to horde  
@@ -39,6 +40,11 @@ Premade prompts
 Multiple Image results  
     Need to organize results into layer groups  
     Create some interface to rotate through options. Invis unused layers in group.  
+        Architectural note:  
+        1. create an invisible layer for each request and group  
+        2. queue up a worker per request  
+        3. set worker to resolve its own interaction or cancelation with layer handler  
+        4. Add interface bar for swapping through layers
 ### Interfacing:
 Generate on Selection instead of whole file resolution  
     Adjustable max resolution for non-square selections  

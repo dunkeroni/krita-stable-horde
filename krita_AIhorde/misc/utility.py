@@ -7,6 +7,14 @@ import urllib
 
 VERSION = 134
 
+def errorMessage(text, detailed):
+   msgBox = QMessageBox()
+   msgBox.setWindowTitle("AI Horde")
+   msgBox.setText(text)
+   msgBox.setDetailedText(detailed)
+   msgBox.setStyleSheet("QLabel{min-width: 300px;}")
+   msgBox.exec()
+
 class Checker():
    updateChecked = False
 

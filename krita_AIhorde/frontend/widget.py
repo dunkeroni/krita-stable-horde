@@ -457,6 +457,19 @@ class Dialog(QWidget):
 		self.refreshUserButton.clicked.connect(self.updateUserInfo)
 		layout.addRow(self.refreshUserButton)
 
+		#username to transfer kudos to
+		self.transferUsername = QLineEdit()
+		layout.addRow("Transfer Kudos To", self.transferUsername)
+
+		#transfer ammount
+		self.transferAmmount = QLineEdit()
+		layout.addRow("Transfer Ammount", self.transferAmmount)
+		
+		#transfer kudos button
+		self.transferKudosButton = QPushButton("Transfer Kudos")
+		self.transferKudosButton.clicked.connect(self.transferKudos)
+		layout.addRow(self.transferKudosButton)
+
 		self.updateUserInfo() #populate actual values if they exist
 
 		tabUser.setLayout(layout)
@@ -467,7 +480,7 @@ class Dialog(QWidget):
 		#get user info from server with the find_user API call
 		apikey = "0000000000" if self.apikey.text() == "" else self.apikey.text()
 		headers = {"Content-Type": "application/json", "Accept": "application/json", "apikey": apikey, "Client-Agent": "dunkeroni's crappy Krita plugin"}
-		url="https://stablehorde.net/api/v2/find_user"
+		url="https://aihorde.net/api/v2/find_user"
 		request = urllib.request.Request(url=url, headers=headers)
 		response = urllib.request.urlopen(request)
 		data = response.read()
@@ -482,3 +495,34 @@ class Dialog(QWidget):
 			
 		except urllib.error.HTTPError as e:
 			raise Exception(data)
+	
+	def transferKudos(self):
+		#provide API key and user ID to send kudos to the server
+		apikey = self.apikey.text()
+		#return early if apikey, transferusername, or ammount are empty
+		if apikey == "" or self.transferUsername.text() == "" or self.transferAmmount.text() == "":
+			return
+		headers = {"Content-Type": "application/json", "Accept": "application/json", "apikey": apikey, "Client-Agent": "dunkeroni's crappy Krita plugin"}
+		url="https://aihorde.net/api/v2/kudos/transfer"
+		data = {
+			"username": self.transferUsername.text(),
+			"amount": self.transferAmmount.text()
+		}
+		request = urllib.request.Request(url=url, data=data, headers=headers)
+		response = urllib.request.urlopen(request)
+		data = response.read()
+		try:
+			#check if response structure has "transfered"
+			response = json.loads(data)
+			if "transfered" in response:
+				#place success message in transferUsername field
+				self.transferUsername.setText("Transfered " + response["transfered"] + " kudos to " + self.transferUsername.text())
+			else:
+				#place error message in transferUsername field
+				self.transferUsername.setText("Error: " + response["message"])
+			self.transferAmmount.setText("")
+		except urllib.error.HTTPError as e:
+			raise Exception(data)
+		
+		self.updateUserInfo() #update user info after transfer
+		

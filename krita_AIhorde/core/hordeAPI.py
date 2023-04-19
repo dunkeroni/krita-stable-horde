@@ -37,7 +37,7 @@ def status_models(sort = True):
         if sort:
             models = sorted(models, key=lambda k: k['count'], reverse=True)
     except urllib.error.URLError as e:
-        utility.errorMessage("status_models url error", e.reason)
+        utility.errorMessage("status_models url error", str(e.reason))
         models = []
     except:
         utility.errorMessage("Error", "Something went wrong while trying to get a list of models.")
@@ -118,7 +118,7 @@ def find_user(apikey = "0000000000"):
         data = response.read()
         userInfo = json.loads(data)
     except urllib.error.URLError as e:
-        utility.errorMessage("find_user url error", e.reason)
+        utility.errorMessage("find_user url error", str(e.reason))
         userInfo = {}
     except:
         utility.errorMessage("Error", "Something went wrong while trying to get user info.")
@@ -151,7 +151,7 @@ def generate_async(data, apikey = "0000000000"):
         status = response.read()
         jobInfo = json.loads(status)
     except urllib.error.URLError as e:
-        utility.errorMessage("generate_async url error", e.reason)
+        utility.errorMessage("generate_async url error", str(e.reason))
         jobInfo = {}
     except:
         utility.errorMessage("Error", "Something went wrong while trying to request an image.")
@@ -187,7 +187,7 @@ def generate_check(id):
         status = response.read()
         jobInfo = json.loads(status)
     except urllib.error.URLError as e:
-        utility.errorMessage("generate_check url error", e.reason)
+        utility.errorMessage("generate_check url error", str(e.reason))
         jobInfo = {}
     except:
         utility.errorMessage("Error", "Something went wrong while trying to check the status of an image.")
@@ -237,7 +237,7 @@ def generate_status(id):
         status = response.read()
         jobInfo = json.loads(status)
     except urllib.error.URLError as e:
-        utility.errorMessage("generate_status url error", e.reason)
+        utility.errorMessage("generate_status url error", str(e.reason))
         jobInfo = {}
     except:
         utility.errorMessage("Error", "Something went wrong while trying to get the status of an image.")

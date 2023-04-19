@@ -84,9 +84,9 @@ class Worker():
          doc.waitForDone()
          doc.refreshProjection()
 
-   def statusEvent(self, message):
+   def pushEvent(self, message, eventType = utility.UpdateEvent.TYPE_CHECKED):
       #posts an event through a new UpdateEvent instance for the current multithreaded instance to provide status messages without crashing krita
-      ev = utility.UpdateEvent(self.eventId, utility.UpdateEvent.TYPE_CHECKED, message)
+      ev = utility.UpdateEvent(self.eventId, eventType, message)
       QApplication.postEvent(self.dialog, ev)
 
    def checkStatus(self):
@@ -94,27 +94,29 @@ class Worker():
       data = hordeAPI.generate_check(self.id)
       self.checkCounter = self.checkCounter + 1
       #escape conditions
+
+      if not data:
+         self.cancel("Error calling Horde. Are you connected to the internet?")
+         return
       if not data["is_possible"]:
-         self.cancelled = True
-         self.statusEvent("Currently no worker available to generate your image. Please try a different model or lower resolution.")
+         self.cancel("Currently no worker available to generate your image. Please try a different model or lower resolution.")
          return
       if self.checkCounter >= self.checkMax:
-         self.cancelled = True
-         self.statusEvent("Generation Fault: Image generation timed out after " + (self.checkMax * self.CHECK_WAIT)/60 + " minutes. Please try it again later.")
+         self.cancel("Generation Fault: Image generation timed out after " + (self.checkMax * self.CHECK_WAIT)/60 + " minutes. Please try it again later.")
          return
       
       #success - completed generation
       if data["done"] == True and self.cancelled == False:
          images = hordeAPI.generate_status(self.id) #self.getImages()
          self.displayGenerated(images["generations"])
-         self.statusEvent("Generation completed.")
+         self.pushEvent("Generation completed.", utility.UpdateEvent.TYPE_FINISHED)
          return
 
       #pending condition, check again
       if data["processing"] == 0:
-         self.statusEvent("Queue position: " + str(data["queue_position"]) + ", Wait time: " + str(data["wait_time"]) + "s")
+         self.pushEvent("Queue position: " + str(data["queue_position"]) + ", Wait time: " + str(data["wait_time"]) + "s")
       elif data["processing"] > 0:
-         self.statusEvent("Generating... " + str(data["finished"]) + " / " + str(data["processing"] + data["finished"] + data["waiting"]))
+         self.pushEvent("Generating... " + str(data["finished"]) + " <== " + str(data["processing"] + data["waiting"]))
 
       timer = threading.Timer(self.CHECK_WAIT, self.checkStatus)
       timer.start()
@@ -146,6 +148,7 @@ class Worker():
          "post_processing": post_process,
          "facefixer_strength": self.dialog.facefixer_strength.value()/100,
          "clip_skip": self.dialog.clip_skip.value(),
+         "n": self.dialog.numImages.value(),
       }
 
       data = {
@@ -202,5 +205,6 @@ class Worker():
       self.checkStatus() #start checking status of the job, repeats every CHECK_WAIT seconds
       return
 
-   def cancel(self):
+   def cancel(self, message="Generation canceled."):
       self.cancelled = True
+      self.pushEvent(message, utility.UpdateEvent.TYPE_FINISHED)

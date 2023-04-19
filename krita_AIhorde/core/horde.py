@@ -3,7 +3,6 @@ from PyKrita import * #fake import for IDE
 from krita import *
 
 import base64
-import json
 import ssl
 import threading
 import urllib
@@ -85,70 +84,43 @@ class Worker():
          doc.waitForDone()
          doc.refreshProjection()
 
-   def getImages(self):
-      url = self.API_ROOT + "generate/status/" + self.id
-      response = urllib.request.urlopen(url)
-      data = response.read()
-      data = json.loads(data)
-      return data["generations"]
+   def pushEvent(self, message, eventType = utility.UpdateEvent.TYPE_CHECKED):
+      #posts an event through a new UpdateEvent instance for the current multithreaded instance to provide status messages without crashing krita
+      ev = utility.UpdateEvent(self.eventId, eventType, message)
+      QApplication.postEvent(self.dialog, ev)
 
    def checkStatus(self):
-      try:
-         url = self.API_ROOT + "generate/check/" + self.id
-         response = urllib.request.urlopen(url)
-         data = response.read()
-         data = json.loads(data)
+      #get the status of the current generation
+      data = hordeAPI.generate_check(self.id)
+      self.checkCounter = self.checkCounter + 1
+      #escape conditions
 
-         self.checkCounter = self.checkCounter + 1
-
-         if self.checkCounter < self.checkMax and data["done"] is False and self.cancelled is False:
-            if data["is_possible"] is True:
-               if data["processing"] == 0:
-                  message = "Queue position: " + str(data["queue_position"]) + ", Wait time: " + str(data["wait_time"]) + "s"
-               elif data["processing"] > 0:
-                  message = "Generating..."
-
-               ev = utility.UpdateEvent(self.eventId, utility.UpdateEvent.TYPE_CHECKED, message)
-               QApplication.postEvent(self.dialog, ev)
-
-               timer = threading.Timer(self.CHECK_WAIT, self.checkStatus)
-               timer.start()
-            else:
-               self.cancelled = True
-               message = "Currently no worker available to generate your image. Please try again later."
-               ev = utility.UpdateEvent(self.eventId, utility.UpdateEvent.TYPE_INFO, message)
-               QApplication.postEvent(self.dialog, ev)
-         elif self.checkCounter == self.checkMax and self.cancelled == False:
-            self.cancelled = True
-            minutes = (self.checkMax * self.CHECK_WAIT)/60
-            message = "Image generation timed out after " + str(minutes) + " minutes. Please try it again later."
-            ev = utility.UpdateEvent(self.eventId, utility.UpdateEvent.TYPE_INFO, message)
-            QApplication.postEvent(self.dialog, ev)
-         elif data["done"] == True and self.cancelled == False:
-            images = self.getImages()
-            self.displayGenerated(images)
-
-            ev = utility.UpdateEvent(self.eventId, utility.UpdateEvent.TYPE_FINISHED)
-            QApplication.postEvent(self.dialog, ev)
-
+      if not data:
+         self.cancel("Error calling Horde. Are you connected to the internet?")
          return
-      except urllib.error.HTTPError as ex:
-         try:
-            data = ex.read()
-            data = json.loads(data)
+      if not data["is_possible"]:
+         self.cancel("Currently no worker available to generate your image. Please try a different model or lower resolution.")
+         return
+      if self.checkCounter >= self.checkMax:
+         self.cancel("Generation Fault: Image generation timed out after " + (self.checkMax * self.CHECK_WAIT)/60 + " minutes. Please try it again later.")
+         return
+      
+      #success - completed generation
+      if data["done"] == True and self.cancelled == False:
+         images = hordeAPI.generate_status(self.id) #self.getImages()
+         self.displayGenerated(images["generations"])
+         self.pushEvent("Generation completed.", utility.UpdateEvent.TYPE_FINISHED)
+         return
 
-            if "message" in data:
-               message = data["message"]
-            else:
-               message = str(ex)
-         except Exception:
-            message = str(ex)
+      #pending condition, check again
+      if data["processing"] == 0:
+         self.pushEvent("Queue position: " + str(data["queue_position"]) + ", Wait time: " + str(data["wait_time"]) + "s")
+      elif data["processing"] > 0:
+         self.pushEvent("Generating... " + str(data["finished"]) + " <== " + str(data["processing"] + data["waiting"]))
 
-         ev = utility.UpdateEvent(self.eventId, utility.UpdateEvent.TYPE_ERROR, message)
-         QApplication.postEvent(self.dialog, ev)
-      except Exception as ex:
-         ev = utility.UpdateEvent(self.eventId, utility.UpdateEvent.TYPE_ERROR, str(ex))
-         QApplication.postEvent(self.dialog, ev)
+      timer = threading.Timer(self.CHECK_WAIT, self.checkStatus)
+      timer.start()
+      return
 
    def generate(self, dialog):
       self.dialog = dialog
@@ -176,6 +148,7 @@ class Worker():
          "post_processing": post_process,
          "facefixer_strength": self.dialog.facefixer_strength.value()/100,
          "clip_skip": self.dialog.clip_skip.value(),
+         "n": self.dialog.numImages.value(),
       }
 
       data = {
@@ -232,5 +205,6 @@ class Worker():
       self.checkStatus() #start checking status of the job, repeats every CHECK_WAIT seconds
       return
 
-   def cancel(self):
+   def cancel(self, message="Generation canceled."):
       self.cancelled = True
+      self.pushEvent(message, utility.UpdateEvent.TYPE_FINISHED)

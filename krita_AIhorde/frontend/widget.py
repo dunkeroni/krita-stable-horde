@@ -97,7 +97,7 @@ class Dialog(QWidget):
 				self.setEnabledStatus(True)
 			elif ev.updateType == utility.UpdateEvent.TYPE_FINISHED:
 				#set status to none and activate the generate button again
-				self.statusDisplay.setText("Done.")
+				#self.statusDisplay.setText("Done.")
 				self.setEnabledStatus(True)
 				
 	#override
@@ -175,12 +175,22 @@ class Dialog(QWidget):
 			self.denoise_strength.setEnabled(status)
 
 		self.promptStrength.setEnabled(status)
+		self.model.setEnabled(status)
+		self.sampler.setEnabled(status)
+		self.denoise_strength.setEnabled(status)
 		self.steps.setEnabled(status)
 		self.seed.setEnabled(status)
 		self.nsfw.setEnabled(status)
 		self.prompt.setEnabled(status)
+		self.negativePrompt.setEnabled(status)
+		self.karras.setEnabled(status)
+		self.highResFix.setEnabled(status)
+		self.clip_skip.setEnabled(status)
 		self.apikey.setEnabled(status)
 		self.maxWait.setEnabled(status)
+		self.postProcessing.setEnabled(status)
+		self.facefixer_strength.setEnabled(status)
+		self.upscale.setEnabled(status)
 		self.generateButton.setEnabled(status)
 
 	def setupBasicTab(self, settings):
@@ -254,6 +264,12 @@ class Dialog(QWidget):
 		self.sampler.setCurrentIndex(3)
 		layout.addRow("Sampler", self.sampler)
 
+		#number of images
+		self.numImages = QSpinBox()
+		self.numImages.setRange(1, 10)
+		self.numImages.setValue(1)
+		layout.addRow("Number of Images", self.numImages)
+		
 		# Steps
 		slider = QSlider(Qt.Orientation.Horizontal, self)
 		slider.setRange(10, 150)

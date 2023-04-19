@@ -52,4 +52,6 @@ Generate on Selection instead of whole file resolution
     Auto-mask selection?  
 ~~Settings window permanently fixed as toolbar~~  
 ~~User info from API key (kudos, generation statistics, etc.)~~  
-    add kudos transfer
+    add kudos transfer  
+### Known bugs that I can't be bothered to solve just yet:
+Crashes if internet connection is lost while requesting.  

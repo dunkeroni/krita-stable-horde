@@ -28,6 +28,7 @@ def status_models(sort = True):
             "type": "image"
         }
     ]"""
+    
     try:
         response = urllib.request.urlopen(API_ROOT + "status/models")
         models = json.loads(response.read())
@@ -36,7 +37,7 @@ def status_models(sort = True):
         if sort:
             models = sorted(models, key=lambda k: k['count'], reverse=True)
     except urllib.error.URLError as e:
-        utility.errorMessage("status_models url error", e.reason)
+        utility.errorMessage("status_models url error", str(e.reason))
         models = []
     except:
         utility.errorMessage("Error", "Something went wrong while trying to get a list of models.")
@@ -108,6 +109,7 @@ def find_user(apikey = "0000000000"):
     }
     }
     """
+    
     url = API_ROOT + "find_user"
     headers = {"Content-Type": "application/json", "Accept": "application/json", "apikey": apikey, "Client-Agent": CLIENT_AGENT}
     try:
@@ -116,7 +118,7 @@ def find_user(apikey = "0000000000"):
         data = response.read()
         userInfo = json.loads(data)
     except urllib.error.URLError as e:
-        utility.errorMessage("find_user url error", e.reason)
+        utility.errorMessage("find_user url error", str(e.reason))
         userInfo = {}
     except:
         utility.errorMessage("Error", "Something went wrong while trying to get user info.")
@@ -149,12 +151,97 @@ def generate_async(data, apikey = "0000000000"):
         status = response.read()
         jobInfo = json.loads(status)
     except urllib.error.URLError as e:
-        utility.errorMessage("generate_async url error", e.reason)
+        utility.errorMessage("generate_async url error", str(e.reason))
         jobInfo = {}
     except:
         utility.errorMessage("Error", "Something went wrong while trying to request an image.")
         jobInfo = {}
-        
+
     return jobInfo
     
+def generate_check(id):
+    #check status of job
+    """Response Format:
+    Success:
+    {
+    "finished": 0,          #number of finished images
+    "processing": 0,        #number of images being processed
+    "restarted": 0,         #number of images that have been restarted
+    "waiting": 0,           #number of images waiting to be processed
+    "done": true,           #true if all images are finished
+    "faulted": false,       #true if any images have failed
+    "wait_time": 0,         #time in seconds until the next image will be processed
+    "queue_position": 0,    #position in queue
+    "kudos": 0,             #kudos used
+    "is_possible": true     #If False, this request will not be able to be completed with the pool of workers currently available
+    }
+
+    Failure: Request not found
+    {
+    "message": "string"
+    }
+    """
+    
+    try:
+        response = urllib.request.urlopen(url = API_ROOT + "generate/check/" + id)
+        status = response.read()
+        jobInfo = json.loads(status)
+    except urllib.error.URLError as e:
+        utility.errorMessage("generate_check url error", str(e.reason))
+        jobInfo = {}
+    except:
+        utility.errorMessage("Error", "Something went wrong while trying to check the status of an image.")
+        jobInfo = {}
+    
+    return jobInfo
+
+
+def generate_status(id):
+    #get status of job including finished images
+    """Response Format:
+    Success:
+    {
+    "finished": 0,              #number of finished images
+    "processing": 0,            #number of images being processed
+    "restarted": 0,             #number of images that have been restarted
+    "waiting": 0,               #number of images waiting to be processed
+    "done": true,               #true if all images are finished
+    "faulted": false,           #true if any images have failed
+    "wait_time": 0,             #time in seconds until the next image will be processed
+    "queue_position": 0,        #position in queue
+    "kudos": 0,                 #kudos used
+    "is_possible": true,        #If False, this request will not be able to be completed with the pool of workers currently available
+    "generations": [            #list of info on finished images
+        {
+        "worker_id": "string",
+        "worker_name": "string", 
+        "model": "string",
+        "state": "ok",
+        "img": "string",         #base64 encoded image
+        "seed": "string",
+        "id": "string",
+        "censored": true
+        }
+    ],
+    "shared": true              #true if the job has been shared with LAION
+    }
+
+    Failure: Request not found
+    {
+    "message": "string"
+    }
+    """
+    
+    try:
+        response = urllib.request.urlopen(API_ROOT + "generate/status/" + id)
+        status = response.read()
+        jobInfo = json.loads(status)
+    except urllib.error.URLError as e:
+        utility.errorMessage("generate_status url error", str(e.reason))
+        jobInfo = {}
+    except:
+        utility.errorMessage("Error", "Something went wrong while trying to get the status of an image.")
+        jobInfo = {}
+
+    return jobInfo
 

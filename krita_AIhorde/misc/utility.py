@@ -1,9 +1,10 @@
-from PyKrita import * #fake import for IDE
-
-from krita import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 
 import json
 import urllib
+import urllib.request
 
 VERSION = 134
 

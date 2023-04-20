@@ -2,7 +2,6 @@ from PyKrita import * #fake import for IDE
 
 from krita import *
 import json
-import urllib.request
 from ..misc import utility
 from ..core import hordeAPI
 

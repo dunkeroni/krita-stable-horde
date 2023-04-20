@@ -3,8 +3,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
 import json
-import urllib
-import urllib.request
+import urllib, urllib.request
 
 VERSION = 134
 

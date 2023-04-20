@@ -5,12 +5,13 @@ from krita import *
 import base64
 import ssl
 import threading
-import urllib
+import urllib, urllib.request, urllib.error
 import math
 import re
 
 from ..misc import utility
 from ..core import hordeAPI
+from ..frontend import widget
 
 class Worker():
    API_ROOT = "https://stablehorde.net/api/v2/"
@@ -30,7 +31,7 @@ class Worker():
    ssl._create_default_https_context = ssl._create_unverified_context
 
    def getInitImage(self):
-      doc = Application.activeDocument()
+      doc: Document = Application.activeDocument()
       nodeInit = self.getInitNode()
 
       if nodeInit is not None:
@@ -48,9 +49,9 @@ class Worker():
       else:
          raise Exception("No layer with init image found.")
 
-   def getInitNode(self):
+   def getInitNode(self) -> Node:
       doc = Application.activeDocument()
-      nodes = doc.topLevelNodes()
+      nodes: List[Node] = doc.topLevelNodes()
 
       nodeInit = None
 
@@ -76,7 +77,7 @@ class Worker():
          ptr = image.bits()
          ptr.setsize(image.byteCount())
 
-         doc = Application.activeDocument()
+         doc: Document = Application.activeDocument()
          root = doc.rootNode()
          node = doc.createNode("Stablehorde " + str(seed), "paintLayer")
          root.addChildNode(node, None)
@@ -122,7 +123,7 @@ class Worker():
       timer.start()
       return
 
-   def generate(self, dialog):
+   def generate(self, dialog: widget.Dialog):
       self.dialog = dialog
       self.checkCounter = 0
       self.cancelled = False
@@ -161,7 +162,7 @@ class Worker():
          "models": [self.dialog.model.currentData()]
       }
 
-      doc = Application.activeDocument()
+      doc: Document = Application.activeDocument()
 
       if doc.width() % 64 != 0:
          width = math.floor(doc.width()/64) * 64

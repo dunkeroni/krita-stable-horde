@@ -3,14 +3,14 @@ from PyKrita import * #fake import for IDE
 from krita import *
 import json
 from ..misc import utility
-from ..core import hordeAPI
+from ..core import hordeAPI, horde
 
 
 class Dialog(QWidget):
 	def __init__(self, worker):
 		super().__init__()#None)
 
-		self.worker = worker
+		self.worker: horde.Worker = worker
 		self.utils = utils = utility.Checker()
 		settings = self.readSettings()
 

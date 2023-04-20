@@ -1,10 +1,6 @@
-import base64
 import json
 import ssl
-import urllib.request
-import urllib.error
-import math
-import re
+import urllib.request, urllib.error
 from ..misc import utility
 
 API_ROOT = "https://stablehorde.net/api/v2/"

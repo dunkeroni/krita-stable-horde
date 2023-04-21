@@ -1,6 +1,8 @@
 from PyKrita import * #fake import for IDE
-
 from krita import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 
 import base64
 import ssl
@@ -10,11 +12,11 @@ import math
 import re
 
 from ..misc import utility
-from ..core import hordeAPI
+from ..core import hordeAPI, selectionHandler
 from ..frontend import widget
 
 class Worker():
-   API_ROOT = "https://stablehorde.net/api/v2/"
+   API_ROOT = "https://aihorde.net/api/v2/"
    CHECK_WAIT = 5
    MODE_TEXT2IMG = 1
    MODE_IMG2IMG = 2
@@ -31,7 +33,7 @@ class Worker():
    ssl._create_default_https_context = ssl._create_unverified_context
 
    def getInitImage(self):
-      doc: Document = Application.activeDocument()
+      doc = utility.document()
       nodeInit = self.getInitNode()
 
       if nodeInit is not None:
@@ -50,8 +52,11 @@ class Worker():
          raise Exception("No layer with init image found.")
 
    def getInitNode(self) -> Node:
-      doc = Application.activeDocument()
-      nodes: List[Node] = doc.topLevelNodes()
+      #convert visible pixels into a new top layer node
+      Krita.instance().action('new_from_visible').trigger() ##ISSUE: THIS BLOCK GETS CALLED TWICE ON IMG2IMG
+
+      doc = utility.document()
+      nodes = doc.topLevelNodes()
 
       nodeInit = None
 
@@ -77,13 +82,14 @@ class Worker():
          ptr = image.bits()
          ptr.setsize(image.byteCount())
 
-         doc: Document = Application.activeDocument()
+         doc = utility.document()
          root = doc.rootNode()
          node = doc.createNode("Stablehorde " + str(seed), "paintLayer")
          root.addChildNode(node, None)
          node.setPixelData(QByteArray(ptr.asstring()), 0, 0, image.width(), image.height())
          doc.waitForDone()
          doc.refreshProjection()
+         self.pushEvent(str(len(images)) + " images generated.")
 
    def pushEvent(self, message, eventType = utility.UpdateEvent.TYPE_CHECKED):
       #posts an event through a new UpdateEvent instance for the current multithreaded instance to provide status messages without crashing krita
@@ -162,7 +168,7 @@ class Worker():
          "models": [self.dialog.model.currentData()]
       }
 
-      doc: Document = Application.activeDocument()
+      doc = utility.document()
 
       if doc.width() % 64 != 0:
          width = math.floor(doc.width()/64) * 64
@@ -180,13 +186,17 @@ class Worker():
       mode = self.dialog.generationMode.checkedId()
 
       if mode == self.MODE_IMG2IMG:
-         init = self.getInitImage()
+         #init = self.getInitImage()
+         x, y, w, h = selectionHandler.getI2Ibounds()
+         init = selectionHandler.getEncodedImageFromBounds(x, y, w, h)
          data.update({"source_image": init})
          data.update({"source_processing": "img2img"})
          params.update({"hires_fix": False})
          params.update({"denoising_strength": self.dialog.denoise_strength.value()/100})
       elif mode == self.MODE_INPAINTING:
-         init = self.getInitImage()
+         #init = self.getInitImage()
+         x, y, w, h = selectionHandler.getI2Ibounds()
+         init = selectionHandler.getEncodedImageFromBounds(x, y, w, h)
          models = ["stable_diffusion_inpainting"]
          data.update({"source_image": init})
          data.update({"source_processing": "inpainting"})

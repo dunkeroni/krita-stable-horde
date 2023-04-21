@@ -1,3 +1,5 @@
+from PyKrita import * #fake import for IDE
+from krita import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -14,6 +16,69 @@ def errorMessage(text, detailed):
    msgBox.setDetailedText(detailed)
    msgBox.setStyleSheet("QLabel{min-width: 300px;}")
    msgBox.exec()
+
+def document() -> Document:
+   #This function makes it so that only this file has warnings in the IDE. It's a hack, but it works, and it's pretty.
+   return Application.activeDocument()
+
+def readSettings():
+   defaults = {
+      "generationMode": 1, #TXT2IMG
+      "denoise_strength": 30,
+      "prompt": "",
+      "negativePrompt": "",
+      "promptStrength": 7,
+      "steps": 20,
+      "seed": "",
+      "nsfw": True,
+      "apikey": "",
+      "maxWait": 5,
+      "karras": True,
+      "clip_skip": 1,
+   }
+
+   try:
+      settings = Application.readSetting("Stablehorde", "Config", None)
+
+      if not settings:
+         settings = defaults
+      else:
+         settings = json.loads(settings)
+         missing = False
+
+      for key in defaults:
+         if not key in settings:
+            missing = True
+            break
+
+      if missing is True:
+         settings = defaults
+   except Exception as ex:
+      settings = defaults
+
+   return settings
+
+def writeSettings(dialog):
+   settings = {
+      "generationMode": dialog.generationMode.checkedId(),
+      "denoise_strength": dialog.denoise_strength.value(),
+      "prompt": dialog.prompt.toPlainText(),
+      "negativePrompt": dialog.negativePrompt.toPlainText(),
+      "promptStrength": dialog.promptStrength.value(),
+      "steps": int(dialog.steps.value()),
+      "seed": dialog.seed.text(),
+      "nsfw": dialog.nsfw.checkState(),
+      "apikey": dialog.apikey.text(),
+      "maxWait": dialog.maxWait.value(),
+      "karras": dialog.karras.checkState(),
+      "clip_skip": dialog.clip_skip.value(),
+   }
+   qDebug("Settings saved to file")
+   try:
+      settings = json.dumps(settings)
+      Application.writeSetting("Stablehorde", "Config", settings)
+   except Exception as ex:
+      ex = ex
 
 class Checker():
    updateChecked = False

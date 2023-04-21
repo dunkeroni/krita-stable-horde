@@ -46,8 +46,10 @@ class Dialog(QWidget):
 
 		if mode == self.worker.MODE_TEXT2IMG or mode == self.worker.MODE_INPAINTING:
 			self.denoise_strength.setEnabled(False)
+			self.minSize.setEnabled(False)
 		elif mode == self.worker.MODE_IMG2IMG:
 			self.denoise_strength.setEnabled(True)
+			self.minSize.setEnabled(True)
 
 	def generate(self):
 		qDebug("Generating image from dialog call...")
@@ -119,6 +121,7 @@ class Dialog(QWidget):
 		self.model.setEnabled(status)
 		self.sampler.setEnabled(status)
 		self.denoise_strength.setEnabled(status)
+		self.minSize.setEnabled(status)
 		self.steps.setEnabled(status)
 		self.seed.setEnabled(status)
 		self.nsfw.setEnabled(status)
@@ -157,7 +160,7 @@ class Dialog(QWidget):
 		group.addButton(self.modeText2Img, self.worker.MODE_TEXT2IMG)
 		group.addButton(self.modeImg2Img, self.worker.MODE_IMG2IMG)
 		group.addButton(self.modeInpainting, self.worker.MODE_INPAINTING)
-		group.button(settings["generationMode"]).setChecked(True)
+		group.button(self.worker.MODE_TEXT2IMG).setChecked(True)
 		self.generationMode = group
 		self.generationMode.buttonClicked.connect(self.handleModeChanged)
 
@@ -178,8 +181,23 @@ class Dialog(QWidget):
 		container.setLayout(layoutH)
 		layout.addRow("Denoising", container)
 
+		#Minimum Size slider
+		self.minSize = QSlider(Qt.Orientation.Horizontal, self)
+		self.minSize.setRange(6, 16) #increments of 64
+		self.minSize.setValue(8)
+		self.minSize.valueChanged.connect(lambda: self.minSizeLabel.setText(str(self.minSize.value()*64)))
+		layoutH = QHBoxLayout()
+		layoutH.addWidget(self.minSize)
+		self.minSizeLabel = QLabel(str(self.minSize.value()*64))
+		layoutH.addWidget(self.minSizeLabel)
+		container = QWidget()
+		container.setLayout(layoutH)
+		layout.addRow("Minimum Size", container)
+		
+
 		if mode == self.worker.MODE_TEXT2IMG or mode == self.worker.MODE_INPAINTING:
 			self.denoise_strength.setEnabled(False)
+			self.minSize.setEnabled(False)
 
 		# Seed
 		self.seed = QLineEdit()

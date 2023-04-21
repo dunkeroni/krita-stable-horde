@@ -82,11 +82,14 @@ class Worker():
          ptr = image.bits()
          ptr.setsize(image.byteCount())
          x, y, w, h = self.bounds
+         gw, gh = self.genSize
          doc = utility.document()
          root = doc.rootNode()
          node = doc.createNode("Stablehorde " + str(seed), "paintLayer")
          root.addChildNode(node, None)
-         node.setPixelData(QByteArray(ptr.asstring()), x, y, image.width(), image.height())
+         node.setPixelData(QByteArray(ptr.asstring()), 0, 0, gw, gh)
+         node.scaleNode(QPointF(0, 0), w, h, "Hermite")
+         node.move(x, y)
          doc.waitForDone()
          doc.refreshProjection()
          self.pushEvent(str(len(images)) + " images generated.")
@@ -170,8 +173,16 @@ class Worker():
 
       x, y, w, h = selectionHandler.getI2Ibounds()
       self.bounds = [x, y, w, h]
+
+      #if w or h is less than minSize, multiply both to meet minimum
+      minSelectionSize = min(w, h)
+      if minSelectionSize < self.dialog.minSize.value()*64:
+         w = int(w * (self.dialog.minSize.value()*64 / minSelectionSize))
+         h = int(h * (self.dialog.minSize.value()*64 / minSelectionSize))
+         qDebug("Selection too small, expanding to " + str(w) + "x" + str(h))
       params.update({"width": w})
       params.update({"height": h})
+      self.genSize = [w, h] #save for later
 
       mode = self.dialog.generationMode.checkedId()
 

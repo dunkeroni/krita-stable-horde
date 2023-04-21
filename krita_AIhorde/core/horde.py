@@ -81,12 +81,12 @@ class Worker():
          image.loadFromData(bytes, 'WEBP')
          ptr = image.bits()
          ptr.setsize(image.byteCount())
-
+         x, y, w, h = self.bounds
          doc = utility.document()
          root = doc.rootNode()
          node = doc.createNode("Stablehorde " + str(seed), "paintLayer")
          root.addChildNode(node, None)
-         node.setPixelData(QByteArray(ptr.asstring()), 0, 0, image.width(), image.height())
+         node.setPixelData(QByteArray(ptr.asstring()), x, y, image.width(), image.height())
          doc.waitForDone()
          doc.refreshProjection()
          self.pushEvent(str(len(images)) + " images generated.")
@@ -168,34 +168,20 @@ class Worker():
          "models": [self.dialog.model.currentData()]
       }
 
-      doc = utility.document()
-
-      if doc.width() % 64 != 0:
-         width = math.floor(doc.width()/64) * 64
-      else:
-         width = doc.width()
-
-      if doc.height() % 64 != 0:
-         height = math.floor(doc.height()/64) * 64
-      else:
-         height = doc.height()
-
-      params.update({"width": width})
-      params.update({"height": height})
+      x, y, w, h = selectionHandler.getI2Ibounds()
+      self.bounds = [x, y, w, h]
+      params.update({"width": w})
+      params.update({"height": h})
 
       mode = self.dialog.generationMode.checkedId()
 
       if mode == self.MODE_IMG2IMG:
-         #init = self.getInitImage()
-         x, y, w, h = selectionHandler.getI2Ibounds()
          init = selectionHandler.getEncodedImageFromBounds(x, y, w, h)
          data.update({"source_image": init})
          data.update({"source_processing": "img2img"})
          params.update({"hires_fix": False})
          params.update({"denoising_strength": self.dialog.denoise_strength.value()/100})
       elif mode == self.MODE_INPAINTING:
-         #init = self.getInitImage()
-         x, y, w, h = selectionHandler.getI2Ibounds()
          init = selectionHandler.getEncodedImageFromBounds(x, y, w, h)
          models = ["stable_diffusion_inpainting"]
          data.update({"source_image": init})

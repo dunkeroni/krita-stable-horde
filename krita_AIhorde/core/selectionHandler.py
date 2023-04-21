@@ -23,8 +23,8 @@ def getI2Ibounds():
         #correct bounds to a multiple of 64 centered on the existing selection
         dw = 64 - (w % 64)
         dh = 64 - (h % 64)
-        x = min(0, x - dw/2)
-        y = min(0, y- dh/2)
+        x = max(0, x - dw/2)
+        y = max(0, y- dh/2)
         w += dw
         h += dh
     else:

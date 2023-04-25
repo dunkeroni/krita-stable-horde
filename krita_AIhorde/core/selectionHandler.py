@@ -9,9 +9,11 @@ from ..misc import utility
 from ..core import hordeAPI, horde
 
 
-def getI2Ibounds():
+def getI2Ibounds(minSize=512):
     qDebug("getI2Ibounds")
-    #Returns an image of the current selection with width and height increased to the nearest multiple of 64
+    #Returns an image of the current selection with width and height increased to the nearest multiple of 64 when scaled by minSize
+    #Result will have the same top left corner of selection with the longer side extended to the nearest upscaled multiple of 64
+    #IMPORTANT: Longer side is an integer and may not extend to an even multiple of 64. Need to check again when encoding.
     doc = utility.document()
     selection = doc.selection()
     if selection is not None:
@@ -20,31 +22,49 @@ def getI2Ibounds():
         y = selection.y()
         w = selection.width()
         h = selection.height()
-        #correct bounds to a multiple of 64 centered on the existing selection
-        dw = 64 - (w % 64)
-        dh = 64 - (h % 64)
-        x = max(0, x - dw/2)
-        y = max(0, y- dh/2)
-        w += dw
-        h += dh
+        qDebug("Initial selection[ x: %d, y: %d, w: %d, h: %d ]" % (x, y, w, h))
+        scaleFactor = minSize / (min(w, h))
+        if w > h:
+            gh = minSize
+            gw = int(w * scaleFactor)
+            gw += 64 - (gw % 64)
+            w = gw // scaleFactor
+            qDebug("Selection too small, expanding Width to " + str(w))
+        else:
+            gw = minSize
+            gh = int(h * scaleFactor)
+            gh += 64 - (gh % 64)
+            h = gh // scaleFactor
+            qDebug("Selection too small, expanding Height to " + str(h))
+        
+        #make sure x + w still fits within the document size
+        x = min(x, doc.width - w)
+        #same for y
+        y = min(y, doc.height - h)
     else:
         #nothing is selected, so choose a 512x512 square in the middle of the document
         qDebug("no selection found, using default bounds")
-        x = doc.width()/2 - 256
-        y = doc.height()/2 - 256
-        w = min(512, doc.width())
-        h = min(512, doc.height())
+        x = doc.width()/2 - minSize/2
+        y = doc.height()/2 - minSize/2
+        w = min(minSize, doc.width())
+        h = min(minSize, doc.height())
+        gw = (w // 64)*64
+        gh = (h // 64)*64
     qDebug("Adjusted values[ x: %d, y: %d, w: %d, h: %d ]" % (x, y, w, h))
-    return x, y, w, h
+    qDebug("Will scale and generate an image of %dx%d" % (gw, gh))
+    return [x, y, w, h, gw, gh]
 
 
-def getEncodedImageFromBounds(x, y, w, h):
+def getEncodedImageFromBounds(bounds):
+    #Returns a scaled base64 encoded image for sending to the horde server
     qDebug("getEncodedImageFromBounds")
-    qDebug("Adjusted values[ x: %d, y: %d, w: %d, h: %d ]" % (x, y, w, h))
-    #Returns a base64 encoded image for sending to the horde server
+    [x, y, w, h, gw, gh] = bounds
+    qDebug("Values[ x: %d, y: %d, w: %d, h: %d ]" % (x, y, w, h))
     doc = utility.document()
     bytes = doc.pixelData(x, y, w, h)
     image = QImage(bytes.data(), w, h, QImage.Format_RGBA8888).rgbSwapped()
+    image = image.scaled(gw, gh, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
+    qDebug("Upscaled image to %dx%d" % (gw, gh))
     bytes = QByteArray()
     buffer = QBuffer(bytes)
     image.save(buffer, "WEBP")
@@ -52,4 +72,16 @@ def getEncodedImageFromBounds(x, y, w, h):
     data = data.decode("ascii")
     return data
 
-
+def putImageIntoBounds(bytes, bounds, nametag="new generation"):
+    qDebug("putImageIntoBounds")
+    x, y, w, h, gw, gh = bounds
+    image = QImage()
+    image.loadFromData(bytes, 'WEBP')
+    image.scaled(w, h, Qt.IgnoreAspectRatio, Qt.SmoothTransformation) #resize down to selection size
+    ptr = image.bits()
+    ptr.setsize(image.byteCount())
+    doc = utility.document()
+    root = doc.rootNode()
+    node = doc.createNode(str(nametag))
+    root.addChildNode(node, None)
+    node.setPixelData(QByteArray(ptr.asstring()), x, y, w, h)

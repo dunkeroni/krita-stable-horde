@@ -73,6 +73,7 @@ def getEncodedImageFromBounds(bounds):
     return data
 
 def putImageIntoBounds(bytes, bounds, nametag="new generation"):
+    #Accepts base64 encoded bytes of image, fits it into the bounds of the selection
     qDebug("putImageIntoBounds")
     x, y, w, h, gw, gh = bounds
     image = QImage()
@@ -80,8 +81,10 @@ def putImageIntoBounds(bytes, bounds, nametag="new generation"):
     image.scaled(w, h, Qt.IgnoreAspectRatio, Qt.SmoothTransformation) #resize down to selection size
     ptr = image.bits()
     ptr.setsize(image.byteCount())
+    qDebug("adding node " + str(nametag))
     doc = utility.document()
     root = doc.rootNode()
     node = doc.createNode(str(nametag))
     root.addChildNode(node, None)
     node.setPixelData(QByteArray(ptr.asstring()), x, y, w, h)
+    qDebug("pixel data added")

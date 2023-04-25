@@ -80,9 +80,12 @@ class Worker():
                 qDebug("Image bytes retrieved from Horde message")
 
             selectionHandler.putImageIntoBounds(bytes, self.bounds, seed)
+            qDebug("Image inserted into bounds, waiting until done")
             doc = utility.document()
             doc.waitForDone()
+            qDebug("Image inserted into bounds, done")
             doc.refreshProjection()
+            qDebug("Image inserted into bounds, projection refreshed")
         self.pushEvent(str(len(images)) + " images generated.")
 
     def pushEvent(self, message, eventType = utility.UpdateEvent.TYPE_CHECKED):
@@ -162,7 +165,7 @@ class Worker():
             "models": [self.dialog.model.currentData()]
         }
 
-        self.bounds = selectionHandler.getI2Ibounds(self.dialog.minSize)
+        self.bounds = selectionHandler.getI2Ibounds(self.dialog.minSize.value()*64)
         [x, y, w, h, gw, gh] = self.bounds #selection bounds already sized correctly and fit to multiple of 64
         params.update({"width": gw})
         params.update({"height": gh})

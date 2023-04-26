@@ -1,8 +1,6 @@
 from PyKrita import * #fake import for IDE
+
 from krita import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
 
 import base64
 import ssl
@@ -12,208 +10,202 @@ import math
 import re
 
 from ..misc import utility
-from ..core import hordeAPI, selectionHandler
+from ..core import hordeAPI
 from ..frontend import widget
 
 class Worker():
-    API_ROOT = "https://aihorde.net/api/v2/"
-    CHECK_WAIT = 5
-    MODE_TEXT2IMG = 1
-    MODE_IMG2IMG = 2
-    MODE_INPAINTING = 3
+   API_ROOT = "https://stablehorde.net/api/v2/"
+   CHECK_WAIT = 5
+   MODE_TEXT2IMG = 1
+   MODE_IMG2IMG = 2
+   MODE_INPAINTING = 3
 
-    dialog = None
-    checkMax = None
-    checkCounter = 0
-    id = None
-    cancelled = False
+   dialog = None
+   checkMax = None
+   checkCounter = 0
+   id = None
+   cancelled = False
 
-    eventId = QEvent.registerEventType()
+   eventId = QEvent.registerEventType()
 
-    ssl._create_default_https_context = ssl._create_unverified_context
+   ssl._create_default_https_context = ssl._create_unverified_context
 
-    def getInitImage(self):
-        doc = utility.document()
-        nodeInit = self.getInitNode()
+   def getInitImage(self):
+      doc: Document = Application.activeDocument()
+      nodeInit = self.getInitNode()
 
-        if nodeInit is not None:
-            if doc.selection() is not None:
-                raise Exception("Selection has to be removed before creating init image.")
+      if nodeInit is not None:
+         if doc.selection() is not None:
+            raise Exception("Selection has to be removed before creating init image.")
 
-            bytes = nodeInit.pixelData(0, 0, doc.width(), doc.height())
-            image = QImage(bytes.data(), doc.width(), doc.height(), QImage.Format_RGBA8888).rgbSwapped()
-            bytes = QByteArray()
-            buffer = QBuffer(bytes)
-            image.save(buffer, "WEBP")
-            data = base64.b64encode(bytes.data())
-            data = data.decode("ascii")
-            return data
-        else:
-            raise Exception("No layer with init image found.")
+         bytes = nodeInit.pixelData(0, 0, doc.width(), doc.height())
+         image = QImage(bytes.data(), doc.width(), doc.height(), QImage.Format_RGBA8888).rgbSwapped()
+         bytes = QByteArray()
+         buffer = QBuffer(bytes)
+         image.save(buffer, "WEBP")
+         data = base64.b64encode(bytes.data())
+         data = data.decode("ascii")
+         return data
+      else:
+         raise Exception("No layer with init image found.")
 
-    def getInitNode(self) -> Node:
-        #convert visible pixels into a new top layer node
-        Krita.instance().action('new_from_visible').trigger() ##ISSUE: THIS BLOCK GETS CALLED TWICE ON IMG2IMG
+   def getInitNode(self) -> Node:
+      doc = Application.activeDocument()
+      nodes: List[Node] = doc.topLevelNodes()
 
-        doc = utility.document()
-        nodes = doc.topLevelNodes()
+      nodeInit = None
 
-        nodeInit = None
+      for node in nodes:
+         if node.visible() is True:
+            nodeInit = node
 
-        for node in nodes:
-            if node.visible() is True:
-                nodeInit = node
+      return nodeInit
 
-        return nodeInit
+   def displayGenerated(self, images):
+      for image in images:
+         seed = image["seed"]
 
-    def displayGenerated(self, images):
-        for image in images:
-            seed = image["seed"]
+         if re.match("^https.*", image["img"]):
+            response = urllib.request.urlopen(image["img"])
+            bytes = response.read()
+         else:
+            bytes = base64.b64decode(image["img"])
+            bytes = QByteArray(bytes)
 
-            if re.match("^https.*", image["img"]):
-                response = urllib.request.urlopen(image["img"])
-                bytes = response.read()
-            else:
-                bytes = base64.b64decode(image["img"])
-                bytes = QByteArray(bytes)
+         image = QImage()
+         image.loadFromData(bytes, 'WEBP')
+         ptr = image.bits()
+         ptr.setsize(image.byteCount())
 
-            selectionHandler.putImageIntoBounds(bytes, self.bounds, seed)
-        self.pushEvent(str(len(images)) + " images generated.")
+         doc: Document = Application.activeDocument()
+         root = doc.rootNode()
+         node = doc.createNode("Stablehorde " + str(seed), "paintLayer")
+         root.addChildNode(node, None)
+         node.setPixelData(QByteArray(ptr.asstring()), 0, 0, image.width(), image.height())
+         doc.waitForDone()
+         doc.refreshProjection()
 
-    def displayGenerated2(self, images):
-        for image in images:
-            seed = image["seed"]
+   def pushEvent(self, message, eventType = utility.UpdateEvent.TYPE_CHECKED):
+      #posts an event through a new UpdateEvent instance for the current multithreaded instance to provide status messages without crashing krita
+      ev = utility.UpdateEvent(self.eventId, eventType, message)
+      QApplication.postEvent(self.dialog, ev)
 
-            if re.match("^https.*", image["img"]):
-                response = urllib.request.urlopen(image["img"])
-                bytes = response.read()
-                qDebug("Image bytes retrieved from URL")
-            else:
-                bytes = base64.b64decode(image["img"])
-                bytes = QByteArray(bytes)
-                qDebug("Image bytes retrieved from Horde message")
+   def checkStatus(self):
+      #get the status of the current generation
+      data = hordeAPI.generate_check(self.id)
+      self.checkCounter = self.checkCounter + 1
+      #escape conditions
 
-            selectionHandler.putImageIntoBounds(bytes, self.bounds, seed)
-            qDebug("Image inserted into bounds, waiting until done")
-            doc = utility.document()
-            doc.waitForDone()
-            qDebug("Image inserted into bounds, done")
-            doc.refreshProjection()
-            qDebug("Image inserted into bounds, projection refreshed")
-        self.pushEvent(str(len(images)) + " images generated.")
+      if not data:
+         self.cancel("Error calling Horde. Are you connected to the internet?")
+         return
+      if not data["is_possible"]:
+         self.cancel("Currently no worker available to generate your image. Please try a different model or lower resolution.")
+         return
+      if self.checkCounter >= self.checkMax:
+         self.cancel("Generation Fault: Image generation timed out after " + (self.checkMax * self.CHECK_WAIT)/60 + " minutes. Please try it again later.")
+         return
+      
+      #success - completed generation
+      if data["done"] == True and self.cancelled == False:
+         images = hordeAPI.generate_status(self.id) #self.getImages()
+         self.displayGenerated(images["generations"])
+         self.pushEvent("Generation completed.", utility.UpdateEvent.TYPE_FINISHED)
+         return
 
-    def pushEvent(self, message, eventType = utility.UpdateEvent.TYPE_CHECKED):
-        #posts an event through a new UpdateEvent instance for the current multithreaded instance to provide status messages without crashing krita
-        ev = utility.UpdateEvent(self.eventId, eventType, message)
-        QApplication.postEvent(self.dialog, ev)
+      #pending condition, check again
+      if data["processing"] == 0:
+         self.pushEvent("Queue position: " + str(data["queue_position"]) + ", Wait time: " + str(data["wait_time"]) + "s")
+      elif data["processing"] > 0:
+         self.pushEvent("Generating... " + str(data["finished"]) + " <== " + str(data["processing"] + data["waiting"]))
 
-    def checkStatus(self):
-        #get the status of the current generation
-        qDebug("Checking status...")
-        data = hordeAPI.generate_check(self.id)
-        self.checkCounter = self.checkCounter + 1
-        #escape conditions
+      timer = threading.Timer(self.CHECK_WAIT, self.checkStatus)
+      timer.start()
+      return
 
-        if not data:
-            self.cancel("Error calling Horde. Are you connected to the internet?")
-            return
-        if not data["is_possible"]:
-            self.cancel("Currently no worker available to generate your image. Please try a different model or lower resolution.")
-            return
-        if self.checkCounter >= self.checkMax:
-            self.cancel("Generation Fault: Image generation timed out after " + (self.checkMax * self.CHECK_WAIT)/60 + " minutes. Please try it again later.")
-            return
-        
-        #success - completed generation
-        if data["done"] == True and self.cancelled == False:
-            images = hordeAPI.generate_status(self.id) #self.getImages()
-            self.displayGenerated(images["generations"])
-            self.pushEvent("Generation completed.", utility.UpdateEvent.TYPE_FINISHED)
-            return
+   def generate(self, dialog: widget.Dialog):
+      self.dialog = dialog
+      self.checkCounter = 0
+      self.cancelled = False
+      self.id = None
+      self.checkMax = (self.dialog.maxWait.value() * 60)/self.CHECK_WAIT
 
-        #pending condition, check again
-        if data["processing"] == 0:
-            self.pushEvent("Queue position: " + str(data["queue_position"]) + ", Wait time: " + str(data["wait_time"]) + "s")
-        elif data["processing"] > 0:
-            self.pushEvent("Generating...\nWaiting: " + str(data["waiting"]) + "\nProcessing: " + str(data["processing"]) + "\nFinished: " + str(data["finished"]))
+      #post processing = [] if 'None' otherwise get value from dialog
+      post_processor = [self.dialog.postProcessing.currentText()] if self.dialog.postProcessing.currentText() != "None" else []
+      #same for upscaler
+      upscaler = [self.dialog.upscale.currentText()] if self.dialog.upscale.currentText() != "None" else []
+      #combine into a single list
+      post_process = post_processor + upscaler
 
-        timer = threading.Timer(self.CHECK_WAIT, self.checkStatus)
-        timer.start()
-        return
+      nsfw = True if self.dialog.nsfw.isChecked() else False
 
-    def generate(self, dialog: widget.Dialog):
-        self.dialog = dialog
-        self.checkCounter = 0
-        self.cancelled = False
-        self.id = None
-        self.checkMax = (self.dialog.maxWait.value() * 60)/self.CHECK_WAIT
+      params = {
+         "sampler_name": self.dialog.sampler.currentText(),
+         "cfg_scale": self.dialog.promptStrength.value(),
+         "steps": int(self.dialog.steps.value()),
+         "seed": self.dialog.seed.text(),
+         "hires_fix": self.dialog.highResFix.isChecked(),
+         "karras": self.dialog.karras.isChecked(),
+         "post_processing": post_process,
+         "facefixer_strength": self.dialog.facefixer_strength.value()/100,
+         "clip_skip": self.dialog.clip_skip.value(),
+         "n": self.dialog.numImages.value(),
+      }
 
-        #post processing = [] if 'None' otherwise get value from dialog
-        post_processor = [self.dialog.postProcessing.currentText()] if self.dialog.postProcessing.currentText() != "None" else []
-        #same for upscaler
-        upscaler = [self.dialog.upscale.currentText()] if self.dialog.upscale.currentText() != "None" else []
-        #combine into a single list
-        post_process = post_processor + upscaler
+      data = {
+         #append negative prompt only if it is not empty
+         "prompt": self.dialog.prompt.toPlainText() + (" ### " + self.dialog.negativePrompt.toPlainText() if self.dialog.negativePrompt.toPlainText() != "" else ""),
+         "params": params,
+         "nsfw": nsfw,
+         "censor_nsfw": False,
+         "r2": True,
+         "models": [self.dialog.model.currentData()]
+      }
 
-        nsfw = True if self.dialog.nsfw.isChecked() else False
+      doc: Document = Application.activeDocument()
 
-        params = {
-            "sampler_name": self.dialog.sampler.currentText(),
-            "cfg_scale": self.dialog.promptStrength.value(),
-            "steps": int(self.dialog.steps.value()),
-            "seed": self.dialog.seed.text(),
-            "hires_fix": self.dialog.highResFix.isChecked(),
-            "karras": self.dialog.karras.isChecked(),
-            "post_processing": post_process,
-            "facefixer_strength": self.dialog.facefixer_strength.value()/100,
-            "clip_skip": self.dialog.clip_skip.value(),
-            "n": self.dialog.numImages.value(),
-        }
+      if doc.width() % 64 != 0:
+         width = math.floor(doc.width()/64) * 64
+      else:
+         width = doc.width()
 
-        data = {
-            #append negative prompt only if it is not empty
-            "prompt": self.dialog.prompt.toPlainText() + (" ### " + self.dialog.negativePrompt.toPlainText() if self.dialog.negativePrompt.toPlainText() != "" else ""),
-            "params": params,
-            "nsfw": nsfw,
-            "censor_nsfw": False,
-            "r2": True,
-            "models": [self.dialog.model.currentData()]
-        }
+      if doc.height() % 64 != 0:
+         height = math.floor(doc.height()/64) * 64
+      else:
+         height = doc.height()
 
-        self.bounds = selectionHandler.getI2Ibounds(self.dialog.minSize.value()*64)
-        [gw, gh] = self.bounds[2] #generation bounds already sized correctly and fit to multiple of 64
-        params.update({"width": gw})
-        params.update({"height": gh})
+      params.update({"width": width})
+      params.update({"height": height})
 
-        mode = self.dialog.generationMode.checkedId()
+      mode = self.dialog.generationMode.checkedId()
 
-        if mode == self.MODE_IMG2IMG:
-            init = selectionHandler.getEncodedImageFromBounds(self.bounds)
-            data.update({"source_image": init})
-            data.update({"source_processing": "img2img"})
-            params.update({"hires_fix": False})
-            params.update({"denoising_strength": self.dialog.denoise_strength.value()/100})
-        elif mode == self.MODE_INPAINTING:
-            init = selectionHandler.getEncodedImageFromBounds(self.bounds)
-            models = ["stable_diffusion_inpainting"]
-            data.update({"source_image": init})
-            data.update({"source_processing": "inpainting"})
-            data.update({"models": models})
-            params.update({"hires_fix": False})
+      if mode == self.MODE_IMG2IMG:
+         init = self.getInitImage()
+         data.update({"source_image": init})
+         data.update({"source_processing": "img2img"})
+         params.update({"hires_fix": False})
+         params.update({"denoising_strength": self.dialog.denoise_strength.value()/100})
+      elif mode == self.MODE_INPAINTING:
+         init = self.getInitImage()
+         models = ["stable_diffusion_inpainting"]
+         data.update({"source_image": init})
+         data.update({"source_processing": "inpainting"})
+         data.update({"models": models})
+         params.update({"hires_fix": False})
 
-        apikey = "0000000000" if self.dialog.apikey.text() == "" else self.dialog.apikey.text()
-        jobInfo = hordeAPI.generate_async(data, apikey) #submit request for async generation
+      apikey = "0000000000" if self.dialog.apikey.text() == "" else self.dialog.apikey.text()
+      jobInfo = hordeAPI.generate_async(data, apikey) #submit request for async generation
 
-        #jobInfo will only have a "message" field and no "id" field if the request failed
-        if "id" in jobInfo:
-            self.id = jobInfo["id"]
-        else:
-            self.cancel()
-            utility.errorMessage("horde.generate()", str(jobInfo))
-        
-        self.checkStatus() #start checking status of the job, repeats every CHECK_WAIT seconds
-        return
+      #jobInfo will only have a "message" field and no "id" field if the request failed
+      if "id" in jobInfo:
+         self.id = jobInfo["id"]
+      else:
+         self.cancel()
+         utility.errorMessage("horde.generate()", str(jobInfo))
+      
+      self.checkStatus() #start checking status of the job, repeats every CHECK_WAIT seconds
+      return
 
-    def cancel(self, message="Generation canceled."):
-        self.cancelled = True
-        self.pushEvent(message, utility.UpdateEvent.TYPE_FINISHED)
+   def cancel(self, message="Generation canceled."):
+      self.cancelled = True
+      self.pushEvent(message, utility.UpdateEvent.TYPE_FINISHED)

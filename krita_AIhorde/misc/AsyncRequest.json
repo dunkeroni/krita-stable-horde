@@ -1,30 +1,30 @@
 {
     "prompt": "string ### negative",
     "params": {
-              "sampler_name": "k_lms",
-              "toggles": [
-                1,
-                4
-              ],
-              "cfg_scale": 5,
-              "denoising_strength": 0.75,
-              "seed": "string",
-              "height": 512,
-              "width": 512,
-              "seed_variation": 1,
-              "post_processing": [
-                "GFPGAN"
-              ],
-              "karras": false,
-              "tiling": false,
-              "hires_fix": false,
-              "clip_skip": 1,
-              "control_type": "canny",
-              "image_is_control": false,
-              "return_control_map": false,
-              "facefixer_strength": 0.75,
-              "steps": 30,
-              "n": 1
+      "sampler_name": "k_lms",
+      "toggles": [
+        1,
+        4
+      ],
+      "cfg_scale": 5,
+      "denoising_strength": 0.75,
+      "seed": "string",
+      "height": 512,
+      "width": 512,
+      "seed_variation": 1,
+      "post_processing": [
+        "GFPGAN"
+      ],
+      "karras": false,
+      "tiling": false,
+      "hires_fix": false,
+      "clip_skip": 1,
+      "control_type": "canny",
+      "image_is_control": false,
+      "return_control_map": false,
+      "facefixer_strength": 0.75,
+      "steps": 30,
+      "n": 1
     },
     "nsfw": false,
     "trusted_workers": false,

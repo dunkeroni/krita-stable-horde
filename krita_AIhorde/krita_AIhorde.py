@@ -2,20 +2,15 @@
 
 from krita import *
 from PyKrita import * #fake import for IDE
-from PyQt5.QtCore import qDebug #logging calls conflict in Krita, so use qDebug instead
-import logging
 from .core import horde
 from .misc import utility
 from .frontend import widget
-
-from os import path
 
 class AIhorde(DockWidget):
    def __init__(self):#, parent):
       super().__init__()#parent)
       self.setWindowTitle("AIhorde")
       self.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
-      qDebug('AIhorde started') #won't be running at this point, but might save to file?
       self.setWidget(widget.Dialog(worker))
 
    def setup(self):

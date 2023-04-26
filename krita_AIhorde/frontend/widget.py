@@ -1,8 +1,6 @@
 from PyKrita import * #fake import for IDE
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
 
+from krita import *
 import json
 from ..misc import utility
 from ..core import hordeAPI, horde
@@ -14,7 +12,7 @@ class Dialog(QWidget):
 
 		self.worker: horde.Worker = worker
 		self.utils = utils = utility.Checker()
-		settings = utility.readSettings()
+		settings = self.readSettings()
 
 		self.setWindowTitle("AI Horde")
 		self.layout = QVBoxLayout()
@@ -32,7 +30,9 @@ class Dialog(QWidget):
 		self.setLayout(self.layout)
 		self.resize(350, 300)
 
-		if utils.checkWebpSupport() is False:
+		webpSupport = utils.checkWebpSupport()
+
+		if webpSupport is False:
 			self.generateButton.setEnabled(False)
 			self.statusDisplay.setText("Your operating system doesn't support the webp image format. Please check troubleshooting section of readme on GitHub for solution.")
 
@@ -46,15 +46,12 @@ class Dialog(QWidget):
 
 		if mode == self.worker.MODE_TEXT2IMG or mode == self.worker.MODE_INPAINTING:
 			self.denoise_strength.setEnabled(False)
-			self.minSize.setEnabled(False)
 		elif mode == self.worker.MODE_IMG2IMG:
 			self.denoise_strength.setEnabled(True)
-			self.minSize.setEnabled(True)
 
 	def generate(self):
-		qDebug("Generating image from dialog call...")
 		mode = self.generationMode.checkedId()
-		doc = utility.document()
+		doc = Application.activeDocument()
 
 		# no document
 		if doc is None:
@@ -69,19 +66,19 @@ class Dialog(QWidget):
 			utility.errorMessage("Invalid document size. Please check details.", "Document needs to be between 384x384 and 1024x1024.")
 			return
 		# img2img/inpainting: missing init image layer
-		#elif (mode == self.worker.MODE_IMG2IMG or mode == self.worker.MODE_INPAINTING) and self.worker.getInitNode() is None:
-			#utility.errorMessage("Please add a visible layer which shows the init/inpainting image.", "")
-			#return
+		elif (mode == self.worker.MODE_IMG2IMG or mode == self.worker.MODE_INPAINTING) and self.worker.getInitNode() is None:
+			utility.errorMessage("Please add a visible layer which shows the init/inpainting image.", "")
+			return
 		# img2img/inpainting: selection has to be removed otherwise crashes krita when creating init image
-		#elif (mode == self.worker.MODE_IMG2IMG or mode == self.worker.MODE_INPAINTING) and doc.selection() is not None:
-			#utility.errorMessage("Please remove the selection by clicking on the image.", "")
-			#return
+		elif (mode == self.worker.MODE_IMG2IMG or mode == self.worker.MODE_INPAINTING) and doc.selection() is not None:
+			utility.errorMessage("Please remove the selection by clicking on the image.", "")
+			return
 		# no prompt
 		elif len(self.prompt.toPlainText()) == 0:
 			utility.errorMessage("Please enter a prompt.", "")
 			return
 		else:
-			utility.writeSettings(self)
+			self.writeSettings()
 			self.setEnabledStatus(False)
 			self.statusDisplay.setText("Waiting for generated image...")
 			self.worker.generate(self)
@@ -105,8 +102,67 @@ class Dialog(QWidget):
 	#override
 	def reject(self):
 		self.worker.cancel()
-		utility.writeSettings(self)
+		self.writeSettings()
 		super().reject()
+
+	def readSettings(self):
+		defaults = {
+			"generationMode": self.worker.MODE_TEXT2IMG,
+			"denoise_strength": 30,
+			"prompt": "",
+			"negativePrompt": "",
+			"promptStrength": 7,
+			"steps": 20,
+			"seed": "",
+			"nsfw": True,
+			"apikey": "",
+			"maxWait": 5,
+			"karras": True,
+			"clip_skip": 1,
+		}
+
+		try:
+			settings = Application.readSetting("Stablehorde", "Config", None)
+
+			if not settings:
+				settings = defaults
+			else:
+				settings = json.loads(settings)
+				missing = False
+
+			for key in defaults:
+				if not key in settings:
+					missing = True
+					break
+
+			if missing is True:
+				settings = defaults
+		except Exception as ex:
+			settings = defaults
+
+		return settings
+
+	def writeSettings(self):
+		settings = {
+			"generationMode": self.generationMode.checkedId(),
+			"denoise_strength": self.denoise_strength.value(),
+			"prompt": self.prompt.toPlainText(),
+			"negativePrompt": self.negativePrompt.toPlainText(),
+			"promptStrength": self.promptStrength.value(),
+			"steps": int(self.steps.value()),
+			"seed": self.seed.text(),
+			"nsfw": self.nsfw.checkState(),
+			"apikey": self.apikey.text(),
+			"maxWait": self.maxWait.value(),
+			"karras": self.karras.checkState(),
+			"clip_skip": self.clip_skip.value(),
+		}
+
+		try:
+			settings = json.dumps(settings)
+			Application.writeSetting("Stablehorde", "Config", settings)
+		except Exception as ex:
+			ex = ex
 
 	def setEnabledStatus(self, status):
 		#Update these to include all the widgets that should be disabled when generating
@@ -121,7 +177,6 @@ class Dialog(QWidget):
 		self.model.setEnabled(status)
 		self.sampler.setEnabled(status)
 		self.denoise_strength.setEnabled(status)
-		self.minSize.setEnabled(status)
 		self.steps.setEnabled(status)
 		self.seed.setEnabled(status)
 		self.nsfw.setEnabled(status)
@@ -160,7 +215,7 @@ class Dialog(QWidget):
 		group.addButton(self.modeText2Img, self.worker.MODE_TEXT2IMG)
 		group.addButton(self.modeImg2Img, self.worker.MODE_IMG2IMG)
 		group.addButton(self.modeInpainting, self.worker.MODE_INPAINTING)
-		group.button(self.worker.MODE_TEXT2IMG).setChecked(True)
+		group.button(settings["generationMode"]).setChecked(True)
 		self.generationMode = group
 		self.generationMode.buttonClicked.connect(self.handleModeChanged)
 
@@ -181,23 +236,8 @@ class Dialog(QWidget):
 		container.setLayout(layoutH)
 		layout.addRow("Denoising", container)
 
-		#Minimum Size slider
-		self.minSize = QSlider(Qt.Orientation.Horizontal, self)
-		self.minSize.setRange(6, 16) #increments of 64
-		self.minSize.setValue(8)
-		self.minSize.valueChanged.connect(lambda: self.minSizeLabel.setText(str(self.minSize.value()*64)))
-		layoutH = QHBoxLayout()
-		layoutH.addWidget(self.minSize)
-		self.minSizeLabel = QLabel(str(self.minSize.value()*64))
-		layoutH.addWidget(self.minSizeLabel)
-		container = QWidget()
-		container.setLayout(layoutH)
-		layout.addRow("Minimum Size", container)
-		
-
 		if mode == self.worker.MODE_TEXT2IMG or mode == self.worker.MODE_INPAINTING:
 			self.denoise_strength.setEnabled(False)
-			self.minSize.setEnabled(False)
 
 		# Seed
 		self.seed = QLineEdit()
@@ -430,7 +470,6 @@ class Dialog(QWidget):
 		return tabUser
 	
 	def updateUserInfo(self):
-		qDebug("Updating user info")
 		#get user info from server with the find_user API call
 		self.userInfo = hordeAPI.find_user(self.apikey.text())
 		#update values from userInfo

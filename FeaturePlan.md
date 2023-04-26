@@ -13,7 +13,7 @@ List of existing and planned features
 ### Organization:
 ~~Move everything out of a single file~~  
 Clean up structure dependencies to make more sense  
-~~Centralize API calls~~  
+Centralize API calls  
 ~~Hide API key by default~~  
 Break krita_stablehorde.py into functional modules  
     Current image + settings ==> Resolve image/mask/mode ==> preformat image scaling ==> send to horde  
@@ -46,13 +46,12 @@ Multiple Image results
         3. set worker to resolve its own interaction or cancelation with layer handler  
         4. Add interface bar for swapping through layers
 ### Interfacing:
-~~Generate on Selection instead of whole file resolution~~  
+Generate on Selection instead of whole file resolution  
     Adjustable max resolution for non-square selections  
-    ~~Fit rectangle to next 64 multiple around selection~~  
+    Fit rectangle to next 64 multiple around selection  
     Auto-mask selection?  
 ~~Settings window permanently fixed as toolbar~~  
 ~~User info from API key (kudos, generation statistics, etc.)~~  
     add kudos transfer  
 ### Known bugs that I can't be bothered to solve just yet:
 Crashes if internet connection is lost while requesting.  
-Errors on first load when API key is blank.  

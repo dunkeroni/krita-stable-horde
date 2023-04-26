@@ -73,6 +73,19 @@ class Worker():
             if re.match("^https.*", image["img"]):
                 response = urllib.request.urlopen(image["img"])
                 bytes = response.read()
+            else:
+                bytes = base64.b64decode(image["img"])
+                bytes = QByteArray(bytes)
+
+            selectionHandler.dispImageTest(bytes, self.bounds, seed)
+
+    def displayGenerated2(self, images):
+        for image in images:
+            seed = image["seed"]
+
+            if re.match("^https.*", image["img"]):
+                response = urllib.request.urlopen(image["img"])
+                bytes = response.read()
                 qDebug("Image bytes retrieved from URL")
             else:
                 bytes = base64.b64decode(image["img"])
@@ -95,6 +108,7 @@ class Worker():
 
     def checkStatus(self):
         #get the status of the current generation
+        qDebug("Checking status...")
         data = hordeAPI.generate_check(self.id)
         self.checkCounter = self.checkCounter + 1
         #escape conditions
@@ -166,7 +180,7 @@ class Worker():
         }
 
         self.bounds = selectionHandler.getI2Ibounds(self.dialog.minSize.value()*64)
-        [x, y, w, h, gw, gh] = self.bounds #selection bounds already sized correctly and fit to multiple of 64
+        [gw, gh] = self.bounds[2] #generation bounds already sized correctly and fit to multiple of 64
         params.update({"width": gw})
         params.update({"height": gh})
 

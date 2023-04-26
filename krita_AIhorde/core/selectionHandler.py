@@ -1,5 +1,4 @@
 from PyKrita import * #fake import for IDE
-from krita import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -80,29 +79,8 @@ def getEncodedImageFromBounds(bounds):
     return data
 
 def putImageIntoBounds(bytes, bounds, nametag="new generation"):
-    #Accepts base64 encoded bytes of image, fits it into the bounds of the selection
-    qDebug("putImageIntoBounds")
-    x, y, w, h, gw, gh = bounds
-    image = QImage()
-    image.loadFromData(bytes, 'WEBP')
-    image.scaled(w, h, Qt.IgnoreAspectRatio, Qt.SmoothTransformation) #resize down to selection size
-    ptr = image.bits()
-    ptr.setsize(image.byteCount())
-    qDebug("adding node " + str(nametag))
-    doc = utility.document()
-    root = doc.rootNode()
-    node = doc.createNode("AI Horde" + str(nametag))
-    root.addChildNode(node, None)
-    qDebug("node added")
-    #node.setPixelData(QByteArray(ptr.asstring()), x, y, w, h)
-    node.setPixelData(QByteArray(ptr.asstring()), 0, 0, image.width(), image.height())
-    qDebug("pixel data added")
-    doc.waitForDone()
-    doc.refreshProjection()
-
-def dispImageTest(bytes, bounds, nametag="new generation"):
     try:
-        qDebug("dispImageTest")
+        qDebug("putImageIntoBounds")
         x, y, w, h = bounds[1] #bounds[1] is the adjusted selection bounds
         xs, ys, ws, hs = bounds[0] #bounds[0] is the original selection bounds
         gw, gh = bounds[2]

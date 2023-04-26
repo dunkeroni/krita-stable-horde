@@ -77,7 +77,8 @@ class Worker():
                 bytes = base64.b64decode(image["img"])
                 bytes = QByteArray(bytes)
 
-            selectionHandler.dispImageTest(bytes, self.bounds, seed)
+            selectionHandler.putImageIntoBounds(bytes, self.bounds, seed)
+        self.pushEvent(str(len(images)) + " images generated.")
 
     def displayGenerated2(self, images):
         for image in images:
@@ -134,7 +135,7 @@ class Worker():
         if data["processing"] == 0:
             self.pushEvent("Queue position: " + str(data["queue_position"]) + ", Wait time: " + str(data["wait_time"]) + "s")
         elif data["processing"] > 0:
-            self.pushEvent("Generating... " + str(data["finished"]) + " <== " + str(data["processing"] + data["waiting"]))
+            self.pushEvent("Generating...\nWaiting: " + str(data["waiting"]) + "\nProcessing: " + str(data["processing"]) + "\nFinished: " + str(data["finished"]))
 
         timer = threading.Timer(self.CHECK_WAIT, self.checkStatus)
         timer.start()

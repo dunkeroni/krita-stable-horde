@@ -6,6 +6,7 @@ from PyQt5.QtGui import *
 import json
 from ..misc import utility
 from ..core import hordeAPI, horde
+from ..misc import range_slider
 
 
 class Dialog(QWidget):
@@ -142,6 +143,19 @@ class Dialog(QWidget):
 		tabBasic = QWidget()
 		layout = QFormLayout()
 
+		# Generate
+		self.generateButton = QPushButton("Generate")
+		self.generateButton.clicked.connect(self.generate)
+		layout.addWidget(self.generateButton)
+
+		# Mask and Img2Img buttons
+		self.maskButton = QPushButton("Mask")
+		#self.maskButton.clicked.connect(self.mask)
+		self.img2imgButton = QPushButton("Img2Img")
+		#self.img2imgButton.clicked.connect(self.img2img)
+		layout.addWidget(self.maskButton)
+		layout.addWidget(self.img2imgButton)
+
 		# Generation Mode
 		box = QGroupBox()
 		self.modeText2Img = QRadioButton("Text -> Image")
@@ -193,11 +207,25 @@ class Dialog(QWidget):
 		container = QWidget()
 		container.setLayout(layoutH)
 		layout.addRow("Minimum Size", container)
+
+		#multi size range slider
+		self.SizeRange = range_slider.RangeSlider(Qt.Orientation.Horizontal, self)
+		self.SizeRange.setRange(4, 16) #increments of 64
+		self.SizeRange.setLow(8)
+		self.SizeRange.setHigh(12)
+		self.SizeRange.sliderMoved.connect(lambda: self.SizeRangeLabel.setText(str(self.SizeRange.low()*64) + " - " + str(self.SizeRange.high()*64)))
+		layoutH = QHBoxLayout()
+		layoutH.addWidget(self.SizeRange)
+		self.SizeRangeLabel = QLabel(str(self.SizeRange.low()*64) + " - " + str(self.SizeRange.high()*64))
+		layoutH.addWidget(self.SizeRangeLabel)
+		container = QWidget()
+		container.setLayout(layoutH)
+		layout.addRow("Size Range", container)
 		
 
 		if mode == self.worker.MODE_TEXT2IMG or mode == self.worker.MODE_INPAINTING:
 			self.denoise_strength.setEnabled(False)
-			self.minSize.setEnabled(False)
+			#self.minSize.setEnabled(False)
 
 		# Seed
 		self.seed = QLineEdit()
@@ -259,11 +287,6 @@ class Dialog(QWidget):
 		self.negativePrompt.setText(settings["negativePrompt"])
 		layout.addRow("Negative Prompt", self.negativePrompt)
 
-		# Status
-		self.statusDisplay = QTextEdit()
-		self.statusDisplay.setReadOnly(True)
-		layout.addRow("Status", self.statusDisplay)
-
 		# Post Processing combobox
 		self.postProcessing = QComboBox()
 		postProcessing_options = ['None', 'GFPGAN', 'CodeFormers', 'strip_background' ]
@@ -294,11 +317,13 @@ class Dialog(QWidget):
 			self.upscale.addItem(upscale)
 		self.upscale.setCurrentIndex(0)
 		layout.addRow("Upscaler", self.upscale)
-		
-		# Generate
-		self.generateButton = QPushButton("Generate")
-		self.generateButton.clicked.connect(self.generate)
-		layout.addWidget(self.generateButton)
+
+
+
+		# Status
+		self.statusDisplay = QTextEdit()
+		self.statusDisplay.setReadOnly(True)
+		layout.addRow("Status", self.statusDisplay)
 
 		# Space
 		layoutH = QHBoxLayout()

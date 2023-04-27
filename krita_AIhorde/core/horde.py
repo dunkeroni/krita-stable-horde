@@ -180,7 +180,7 @@ class Worker():
             "models": [self.dialog.model.currentData()]
         }
 
-        self.bounds = selectionHandler.getI2Ibounds(self.dialog.minSize.value()*64)
+        self.bounds = selectionHandler.getI2Ibounds(self.dialog.SizeRange.low()*64, self.dialog.SizeRange.high()*64)
         [gw, gh] = self.bounds[2] #generation bounds already sized correctly and fit to multiple of 64
         params.update({"width": gw})
         params.update({"height": gh})
@@ -209,7 +209,7 @@ class Worker():
             self.id = jobInfo["id"]
         else:
             self.cancel()
-            utility.errorMessage("horde.generate()", str(jobInfo))
+            utility.errorMessage("horde.generate() error", str(jobInfo))
         
         self.checkStatus() #start checking status of the job, repeats every CHECK_WAIT seconds
         return

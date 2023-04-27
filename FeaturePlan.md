@@ -47,12 +47,27 @@ Multiple Image results
         4. Add interface bar for swapping through layers
 ### Interfacing:
 ~~Generate on Selection instead of whole file resolution~~  
-    Adjustable max resolution for non-square selections  
+    ~~Adjustable max resolution for non-square selections~~  
     ~~Fit rectangle to next 64 multiple around selection~~  
     Auto-mask selection?  
+    Inpainting Masks:  
+        Intended Workflow:  
+            1. Select rectangular area with normal selection box  
+            2. Hit "Inpaint Mask" button  
+            3. Draw mask inside selection with brush tool  
+            4. Hit "Inpaint Img2Img"  
+            5. Choose from results  
+        Functional Backend (starts on "Inpaint Mask" trigger):  
+            1. Check for selection, prompt warning if it does not exist
+            2. Activate global selection layer
+            3. Switch to brush tool --> wait for user to send i2i command
+            4. Crop selection, invert, convert to greyscale mask image
+            5. Disable global mask, change back to rectangular selection tool
+            6. Generate images grom horde, hand back to user
+
 ~~Settings window permanently fixed as toolbar~~  
 ~~User info from API key (kudos, generation statistics, etc.)~~  
-    add kudos transfer  
+    add kudos transfer (broke on last attempt)  
 ### Known bugs that I can't be bothered to solve just yet:
 Crashes if internet connection is lost while requesting.  
 Errors on first load when API key is blank.  

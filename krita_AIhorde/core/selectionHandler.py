@@ -68,22 +68,22 @@ def getI2Ibounds(minSize=512, maxSize = 1536):
     bounds  = [[], [], []]
     if selection is not None:
         qDebug("selection found")
-        x = int(selection.x())
-        y = int(selection.y())
+        x = selection.x()
+        y = selection.y()
         w = selection.width()
         h = selection.height()
         bounds[0] = [x, y, w, h] #original selection bounds
         w1, h1, gw, gh = limitBounds(w, h, minSize, maxSize)
 
         #make sure the adjusted seleciton still fits within the document size
-        x1 = int(min(x, doc.width() - w1))
-        y1 = int(min(y, doc.height() - h1))
+        x1 = min(x, doc.width() - w1)
+        y1 = min(y, doc.height() - h1)
         bounds[1] = [x1, y1, w1, h1] #adjusted selection bounds
     else:
         #nothing is selected, so choose a 512x512 square in the middle of the document
         qDebug("no selection found, using default bounds")
-        x = int(doc.width()/2 - minSize/2)
-        y = int(doc.height()/2 - minSize/2)
+        x = doc.width()/2 - minSize/2
+        y = doc.height()/2 - minSize/2
         w = min(minSize, doc.width())
         h = min(minSize, doc.height())
         gw = (w // 64)*64
@@ -92,6 +92,7 @@ def getI2Ibounds(minSize=512, maxSize = 1536):
     qDebug("Adjusted values[ x: %d, y: %d, w: %d, h: %d ]" % (x, y, w, h))
     qDebug("Will scale and generate an image of %dx%d" % (gw, gh))
     bounds[2] = [gw, gh] #intended generation size
+    bounds = [list( map(int,i) ) for i in bounds]
     return bounds
 
 
@@ -116,13 +117,13 @@ def getEncodedImageFromBounds(bounds):
 def putImageIntoBounds(bytes, bounds, nametag="new generation"):
     try:
         qDebug("putImageIntoBounds: " + str(bounds))
-        x, y, w, h = bounds[1] #bounds[1] is the adjusted selection bounds, [x, y] <= [xs, ys]
+        x, y, w, h = bounds[1] #bounds[1] is the adjusted selection bounds
         xs, ys, ws, hs = bounds[0] #bounds[0] is the original selection bounds
         gw, gh = bounds[2]
         qDebug("Reducing into [ x: %d, y: %d, w: %d, h: %d ] from generation of size %dx%d" % (x, y, w, h, gw, gh))
         image = QImage()
         image.loadFromData(bytes, 'WEBP')
-        qDebug("Found image size is %dx%d. Resizing to %dx%d" % (image.width(), image.height(), w, h))
+        qDebug("Found image size is %dx%d. Resizing to selection bounds" % (image.width(), image.height()))
         image = image.scaled(w, h, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
         qDebug("cropping to w: %d, h: %d" % (ws, hs))
         image = image.copy(xs - x, ys - y, ws, hs)
@@ -131,13 +132,14 @@ def putImageIntoBounds(bytes, bounds, nametag="new generation"):
         qDebug("adding node " + str(nametag) + "...")
         doc = utility.document()
         root = doc.rootNode()
-        node = doc.createNode("AIhorde " + str(nametag))
+        node = doc.createNode("Stablehorde " + str(nametag), "paintLayer")
         root.addChildNode(node, None)
         qDebug("node added")
         node.setPixelData(QByteArray(ptr.asstring()), xs, ys, ws, hs)
         qDebug("pixel data added")
     except:
-        qDebug("Failed to display image. Something horrible happened instead")
+        qDebug("failed to display image")
+        raise Exception("Failed to display image. Something horrible happened instead.")
 
     doc.waitForDone()
     doc.refreshProjection()

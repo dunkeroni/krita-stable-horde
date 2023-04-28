@@ -202,6 +202,7 @@ class Worker():
             params.update({"hires_fix": False})
 
         apikey = "0000000000" if self.dialog.apikey.text() == "" else self.dialog.apikey.text()
+        #utility.errorMessage("generation info:", str(data))
         jobInfo = hordeAPI.generate_async(data, apikey) #submit request for async generation
 
         #jobInfo will only have a "message" field and no "id" field if the request failed

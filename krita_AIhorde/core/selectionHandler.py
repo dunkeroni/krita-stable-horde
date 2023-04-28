@@ -42,9 +42,11 @@ def limitBounds(w, h, minSize, maxSize):
             qDebug("Selection too large, shrinking")
     else: #no limit correction applied, scale up towards nearest multiple of 64 on both
         qDebug("increasing selection to nearest 64 multiples")
-        if w % 64 != 0:
+        gw = w
+        gh = h
+        if gw % 64 != 0:
             gw = 64 * ((w // 64) + 1)
-        if h % 64 != 0:
+        if gh % 64 != 0:
             gh = 64 * ((h // 64) + 1)
         w1 = gw
         h1 = gh
@@ -129,17 +131,15 @@ def putImageIntoBounds(bytes, bounds, nametag="new generation"):
         image = image.copy(xs - x, ys - y, ws, hs)
         ptr = image.bits()
         ptr.setsize(image.byteCount())
-        qDebug("adding node " + str(nametag) + "...")
         doc = utility.document()
         root = doc.rootNode()
         node = doc.createNode("Stablehorde " + str(nametag), "paintLayer")
         root.addChildNode(node, None)
-        qDebug("node added")
+        qDebug("node added: " + str(nametag))
         node.setPixelData(QByteArray(ptr.asstring()), xs, ys, ws, hs)
         qDebug("pixel data added")
     except:
         qDebug("failed to display image")
         raise Exception("Failed to display image. Something horrible happened instead.")
-
     doc.waitForDone()
     doc.refreshProjection()

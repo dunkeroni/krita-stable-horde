@@ -3,7 +3,6 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
-import json
 from ..misc import utility
 from ..core import hordeAPI, horde
 from ..misc import range_slider
@@ -11,11 +10,12 @@ from ..misc import range_slider
 
 class Dialog(QWidget):
 	def __init__(self, worker):
-		super().__init__()#None)
+		super().__init__()
 
 		self.worker: horde.Worker = worker
 		self.utils = utils = utility.Checker()
 		settings = utility.readSettings()
+		self.maskMode = False
 
 		self.setWindowTitle("AI Horde")
 		self.layout = QVBoxLayout()
@@ -51,24 +51,50 @@ class Dialog(QWidget):
 		elif mode == self.worker.MODE_IMG2IMG:
 			self.denoise_strength.setEnabled(True)
 			self.minSize.setEnabled(True)
+	
+	def toggleMaskMode(self, forceDisable = False):
+		if self.maskMode or forceDisable:
+			qDebug("Disabling mask mode...")
+			self.maskMode = False
+			self.maskButton.setText("Mask")
+			self.img2imgButton.setText("Img2Img")
+			self.maskButton.setStyleSheet("background-color:#015F90;")
+		else:
+			if utility.document() is None:
+				utility.errorMessage("Please open a document. Please check details.", "For image generation a document with a size at or above 384x384, color model 'RGB/Alpha', color depth '8-bit integer' and a paint layer is needed.")
+				return
+			if utility.document().selection() is None:
+				utility.errorMessage("Make a selection.", "Please select a region of the document before enabling mask mode.")
+				return
+			qDebug("Enabling mask mode...")
+			self.maskMode = True
+			self.maskButton.setText("Cancel")
+			self.img2imgButton.setText("Inpaint")
+			self.maskButton.setStyleSheet("background-color:#890000;")
 
-	def generate(self):
+	def img2imgGenerate(self):
+		if utility.document().selection() is None:
+			utility.errorMessage("Make a selection.", "Please select a region of the document before enaging Img2Img mode.")
+			return
+		self.generate(True, self.maskMode)
+		self.toggleMaskMode(True)
+
+	def generate(self, img2img = False, inpainting = False):
 		qDebug("Generating image from dialog call...")
-		mode = self.generationMode.checkedId()
 		doc = utility.document()
 
 		# no document
 		if doc is None:
-			utility.errorMessage("Please open a document. Please check details.", "For image generation a document with a size between 384x384 and 1024x1024, color model 'RGB/Alpha', color depth '8-bit integer' and a paint layer is needed.")
+			utility.errorMessage("Please open a document. Please check details.", "For image generation a document with a size at or above 384x384, color model 'RGB/Alpha', color depth '8-bit integer' and a paint layer is needed.")
 			return
 		# document has invalid color model or depth
 		elif doc.colorModel() != "RGBA" or doc.colorDepth() != "U8":
 			utility.errorMessage("Invalid document properties. Please check details.", "For image generation a document with color model 'RGB/Alpha', color depth '8-bit integer' is needed.")
 			return
 		# document too small or large
-		elif doc.width() < 384 or doc.width() > 1024 or doc.height() < 384 or doc.height() > 1024:
-			utility.errorMessage("Invalid document size. Please check details.", "Document needs to be between 384x384 and 1024x1024.")
-			return
+		#elif doc.width() < 384 or doc.width() > 1024 or doc.height() < 384 or doc.height() > 1024:
+			#utility.errorMessage("Invalid document size. Please check details.", "Document needs to be between 384x384 and 1024x1024.")
+			#return
 		# img2img/inpainting: missing init image layer
 		#elif (mode == self.worker.MODE_IMG2IMG or mode == self.worker.MODE_INPAINTING) and self.worker.getInitNode() is None:
 			#utility.errorMessage("Please add a visible layer which shows the init/inpainting image.", "")
@@ -85,7 +111,7 @@ class Dialog(QWidget):
 			utility.writeSettings(self)
 			self.setEnabledStatus(False)
 			self.statusDisplay.setText("Waiting for generated image...")
-			self.worker.generate(self)
+			self.worker.generate(self, img2img, inpainting)
 
 	#override
 	def customEvent(self, ev):
@@ -111,18 +137,11 @@ class Dialog(QWidget):
 
 	def setEnabledStatus(self, status):
 		#Update these to include all the widgets that should be disabled when generating
-		self.modeText2Img.setEnabled(status)
-		self.modeImg2Img.setEnabled(status)
-		self.modeInpainting.setEnabled(status)
-
-		if self.generationMode.checkedId() == self.worker.MODE_IMG2IMG:
-			self.denoise_strength.setEnabled(status)
-
 		self.promptStrength.setEnabled(status)
 		self.model.setEnabled(status)
 		self.sampler.setEnabled(status)
 		self.denoise_strength.setEnabled(status)
-		self.minSize.setEnabled(status)
+		self.SizeRange.setEnabled(status)
 		self.steps.setEnabled(status)
 		self.seed.setEnabled(status)
 		self.nsfw.setEnabled(status)
@@ -146,39 +165,17 @@ class Dialog(QWidget):
 		# Generate
 		self.generateButton = QPushButton("Generate")
 		self.generateButton.clicked.connect(self.generate)
+		self.generateButton.setStyleSheet("background-color:#A04200;")
 		layout.addWidget(self.generateButton)
 
 		# Mask and Img2Img buttons
 		self.maskButton = QPushButton("Mask")
-		#self.maskButton.clicked.connect(self.mask)
+		self.maskButton.clicked.connect(self.toggleMaskMode)
 		self.img2imgButton = QPushButton("Img2Img")
-		#self.img2imgButton.clicked.connect(self.img2img)
-		layout.addWidget(self.maskButton)
-		layout.addWidget(self.img2imgButton)
-
-		# Generation Mode
-		box = QGroupBox()
-		self.modeText2Img = QRadioButton("Text -> Image")
-		self.modeImg2Img = QRadioButton("Image -> Image")
-		self.modeInpainting = QRadioButton("Inpainting")
-		layoutV = QVBoxLayout()
-		layoutV.addWidget(self.modeText2Img)
-		layoutV.addWidget(self.modeImg2Img)
-		layoutV.addWidget(self.modeInpainting)
-		box.setLayout(layoutV)
-		label = QLabel("Generation Mode")
-		label.setStyleSheet("QLabel{margin-top:12px;}")
-		layout.addRow(label, box)
-
-		group = QButtonGroup()
-		group.addButton(self.modeText2Img, self.worker.MODE_TEXT2IMG)
-		group.addButton(self.modeImg2Img, self.worker.MODE_IMG2IMG)
-		group.addButton(self.modeInpainting, self.worker.MODE_INPAINTING)
-		group.button(self.worker.MODE_TEXT2IMG).setChecked(True)
-		self.generationMode = group
-		self.generationMode.buttonClicked.connect(self.handleModeChanged)
-
-		mode = self.generationMode.checkedId()
+		self.img2imgButton.clicked.connect(self.img2imgGenerate)
+		self.maskButton.setStyleSheet("background-color:#015F90;")
+		self.img2imgButton.setStyleSheet("background-color:#015F90;")
+		layout.addRow(self.maskButton, self.img2imgButton)
 
 		# Denoise Strength
 		slider = QSlider(Qt.Orientation.Horizontal, self)
@@ -195,24 +192,11 @@ class Dialog(QWidget):
 		container.setLayout(layoutH)
 		layout.addRow("Denoising", container)
 
-		#Minimum Size slider
-		self.minSize = QSlider(Qt.Orientation.Horizontal, self)
-		self.minSize.setRange(6, 16) #increments of 64
-		self.minSize.setValue(8)
-		self.minSize.valueChanged.connect(lambda: self.minSizeLabel.setText(str(self.minSize.value()*64)))
-		layoutH = QHBoxLayout()
-		layoutH.addWidget(self.minSize)
-		self.minSizeLabel = QLabel(str(self.minSize.value()*64))
-		layoutH.addWidget(self.minSizeLabel)
-		container = QWidget()
-		container.setLayout(layoutH)
-		layout.addRow("Minimum Size", container)
-
 		#multi size range slider
 		self.SizeRange = range_slider.RangeSlider(Qt.Orientation.Horizontal, self)
-		self.SizeRange.setRange(4, 16) #increments of 64
+		self.SizeRange.setRange(4, 32) #increments of 64
 		self.SizeRange.setLow(8)
-		self.SizeRange.setHigh(12)
+		self.SizeRange.setHigh(32)
 		self.SizeRange.sliderMoved.connect(lambda: self.SizeRangeLabel.setText(str(self.SizeRange.low()*64) + " - " + str(self.SizeRange.high()*64)))
 		layoutH = QHBoxLayout()
 		layoutH.addWidget(self.SizeRange)
@@ -221,11 +205,6 @@ class Dialog(QWidget):
 		container = QWidget()
 		container.setLayout(layoutH)
 		layout.addRow("Size Range", container)
-		
-
-		if mode == self.worker.MODE_TEXT2IMG or mode == self.worker.MODE_INPAINTING:
-			self.denoise_strength.setEnabled(False)
-			#self.minSize.setEnabled(False)
 
 		# Seed
 		self.seed = QLineEdit()
@@ -317,8 +296,6 @@ class Dialog(QWidget):
 			self.upscale.addItem(upscale)
 		self.upscale.setCurrentIndex(0)
 		layout.addRow("Upscaler", self.upscale)
-
-
 
 		# Status
 		self.statusDisplay = QTextEdit()

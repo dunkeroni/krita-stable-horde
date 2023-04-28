@@ -101,6 +101,7 @@ class Worker():
             doc.refreshProjection()
             qDebug("Image inserted into bounds, projection refreshed")
         self.pushEvent(str(len(images)) + " images generated.")
+        self.dialog.updateUserInfo(self.dialog.apikey.text())
 
     def pushEvent(self, message, eventType = utility.UpdateEvent.TYPE_CHECKED):
         #posts an event through a new UpdateEvent instance for the current multithreaded instance to provide status messages without crashing krita
@@ -141,7 +142,7 @@ class Worker():
         timer.start()
         return
 
-    def generate(self, dialog: widget.Dialog):
+    def generate(self, dialog: widget.Dialog, img2img = False, inpainting = False):
         self.dialog = dialog
         self.checkCounter = 0
         self.cancelled = False
@@ -185,21 +186,14 @@ class Worker():
         params.update({"width": gw})
         params.update({"height": gh})
 
-        mode = self.dialog.generationMode.checkedId()
-
-        if mode == self.MODE_IMG2IMG:
+        if img2img:
             init = selectionHandler.getEncodedImageFromBounds(self.bounds)
             data.update({"source_image": init})
             data.update({"source_processing": "img2img"})
             params.update({"hires_fix": False})
             params.update({"denoising_strength": self.dialog.denoise_strength.value()/100})
-        elif mode == self.MODE_INPAINTING:
-            init = selectionHandler.getEncodedImageFromBounds(self.bounds)
-            models = ["stable_diffusion_inpainting"]
-            data.update({"source_image": init})
+        if inpainting: #implies img2img
             data.update({"source_processing": "inpainting"})
-            data.update({"models": models})
-            params.update({"hires_fix": False})
 
         apikey = "0000000000" if self.dialog.apikey.text() == "" else self.dialog.apikey.text()
         #utility.errorMessage("generation info:", str(data))

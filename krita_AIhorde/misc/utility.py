@@ -23,7 +23,6 @@ def document() -> Document:
 
 def readSettings():
    defaults = {
-      "generationMode": 1, #TXT2IMG
       "denoise_strength": 30,
       "prompt": "",
       "negativePrompt": "",
@@ -60,7 +59,6 @@ def readSettings():
 
 def writeSettings(dialog):
    settings = {
-      "generationMode": dialog.generationMode.checkedId(),
       "denoise_strength": dialog.denoise_strength.value(),
       "prompt": dialog.prompt.toPlainText(),
       "negativePrompt": dialog.negativePrompt.toPlainText(),

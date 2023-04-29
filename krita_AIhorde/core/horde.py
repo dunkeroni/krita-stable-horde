@@ -79,33 +79,15 @@ class Worker():
 
             selectionHandler.putImageIntoBounds(bytes, self.bounds, seed)
         self.pushEvent(str(len(images)) + " images generated.")
+        self.dialog.setEnabledStatus(True)
+        self.dialog.updateUserInfo(self.dialog.apikey.text())
 
-    def displayGenerated2(self, images):
-        for image in images:
-            seed = image["seed"]
-
-            if re.match("^https.*", image["img"]):
-                response = urllib.request.urlopen(image["img"])
-                bytes = response.read()
-                qDebug("Image bytes retrieved from URL")
-            else:
-                bytes = base64.b64decode(image["img"])
-                bytes = QByteArray(bytes)
-                qDebug("Image bytes retrieved from Horde message")
-
-            selectionHandler.putImageIntoBounds(bytes, self.bounds, seed)
-            qDebug("Image inserted into bounds, waiting until done")
-            doc = utility.document()
-            doc.waitForDone()
-            qDebug("Image inserted into bounds, done")
-            doc.refreshProjection()
-            qDebug("Image inserted into bounds, projection refreshed")
-        self.pushEvent(str(len(images)) + " images generated.")
 
     def pushEvent(self, message, eventType = utility.UpdateEvent.TYPE_CHECKED):
         #posts an event through a new UpdateEvent instance for the current multithreaded instance to provide status messages without crashing krita
         ev = utility.UpdateEvent(self.eventId, eventType, message)
         QApplication.postEvent(self.dialog, ev)
+
 
     def checkStatus(self):
         #get the status of the current generation
@@ -141,7 +123,7 @@ class Worker():
         timer.start()
         return
 
-    def generate(self, dialog: widget.Dialog):
+    def generate(self, dialog: widget.Dialog, img2img = False, inpainting = False):
         self.dialog = dialog
         self.checkCounter = 0
         self.cancelled = False
@@ -180,28 +162,22 @@ class Worker():
             "models": [self.dialog.model.currentData()]
         }
 
-        self.bounds = selectionHandler.getI2Ibounds(self.dialog.minSize.value()*64)
+        self.bounds = selectionHandler.getI2Ibounds(self.dialog.SizeRange.low()*64, self.dialog.SizeRange.high()*64)
         [gw, gh] = self.bounds[2] #generation bounds already sized correctly and fit to multiple of 64
         params.update({"width": gw})
         params.update({"height": gh})
 
-        mode = self.dialog.generationMode.checkedId()
-
-        if mode == self.MODE_IMG2IMG:
-            init = selectionHandler.getEncodedImageFromBounds(self.bounds)
+        if img2img:
+            init = selectionHandler.getEncodedImageFromBounds(self.bounds, inpainting)
             data.update({"source_image": init})
             data.update({"source_processing": "img2img"})
             params.update({"hires_fix": False})
             params.update({"denoising_strength": self.dialog.denoise_strength.value()/100})
-        elif mode == self.MODE_INPAINTING:
-            init = selectionHandler.getEncodedImageFromBounds(self.bounds)
-            models = ["stable_diffusion_inpainting"]
-            data.update({"source_image": init})
+        if inpainting: #implies img2img
             data.update({"source_processing": "inpainting"})
-            data.update({"models": models})
-            params.update({"hires_fix": False})
 
         apikey = "0000000000" if self.dialog.apikey.text() == "" else self.dialog.apikey.text()
+        #utility.errorMessage("generation info:", str(data))
         jobInfo = hordeAPI.generate_async(data, apikey) #submit request for async generation
 
         #jobInfo will only have a "message" field and no "id" field if the request failed
@@ -209,7 +185,7 @@ class Worker():
             self.id = jobInfo["id"]
         else:
             self.cancel()
-            utility.errorMessage("horde.generate()", str(jobInfo))
+            utility.errorMessage("horde.generate() error", str(jobInfo))
         
         self.checkStatus() #start checking status of the job, repeats every CHECK_WAIT seconds
         return

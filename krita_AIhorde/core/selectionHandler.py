@@ -6,7 +6,6 @@ from PyQt5.QtGui import *
 import json
 import base64
 from ..misc import utility
-from ..core import hordeAPI, horde
 
 
 def limitBounds(w, h, minSize, maxSize):
@@ -98,15 +97,33 @@ def getI2Ibounds(minSize=512, maxSize = 1536):
     return bounds
 
 
-def getEncodedImageFromBounds(bounds):
+def getEncodedImageFromBounds(bounds, inpainting = False):
     #Returns a scaled base64 encoded image for sending to the horde server
     qDebug("getEncodedImageFromBounds")
     [x, y, w, h] = bounds[1] #bounds[1] is the adjusted selection bounds
     [gw, gh] = bounds[2]
     qDebug("Values[ x: %d, y: %d, w: %d, h: %d ]" % (x, y, w, h))
     doc = utility.document()
+
+    if inpainting:
+        qDebug("Inpainting, using selection bounds")
+        maskNode = doc.nodeByName(utility.INPAINT_MASK_NAME)
+        if maskNode is None:
+            inpainting = False
+            qDebug("No inpainting mask found. Did you delete?")
+        else:
+            qDebug("Found inpainting mask")
+            maskbytes = maskNode.pixelData(x, y, w, h)
+            mask = QImage(maskbytes.data(), w, h, QImage.Format_RGBA8888)
+            utility.deleteMaskNode()
+            doc.waitForDone()
+
     bytes = doc.pixelData(x, y, w, h)
     image = QImage(bytes.data(), w, h, QImage.Format_RGBA8888).rgbSwapped()
+    if inpainting:
+        mask.invertPixels(QImage.InvertRgba)
+        image.setAlphaChannel(mask.convertToFormat(QImage.Format_Alpha8))
+        qDebug("Set alpha channel to mask layer")
     image = image.scaled(gw, gh, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
     qDebug("Upscaled image to %dx%d" % (gw, gh))
     bytes = QByteArray()

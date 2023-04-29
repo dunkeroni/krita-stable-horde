@@ -41,29 +41,23 @@ class Dialog(QWidget):
 
 		if update["update"] is True:
 			self.statusDisplay.setText(update["message"])
-
-	def handleModeChanged(self):
-		mode = self.generationMode.checkedId()
-
-		if mode == self.worker.MODE_TEXT2IMG or mode == self.worker.MODE_INPAINTING:
-			self.denoise_strength.setEnabled(False)
-			self.minSize.setEnabled(False)
-		elif mode == self.worker.MODE_IMG2IMG:
-			self.denoise_strength.setEnabled(True)
-			self.minSize.setEnabled(True)
 	
 	def toggleMaskMode(self, forceDisable = False):
+		doc = utility.document()
 		if self.maskMode or forceDisable:
 			qDebug("Disabling mask mode...")
 			self.maskMode = False
 			self.maskButton.setText("Mask")
 			self.img2imgButton.setText("Img2Img")
 			self.maskButton.setStyleSheet("background-color:#015F90;")
+			utility.deleteMaskNode() #get rid of masking layer
+			Krita.instance().action("KisToolSelectRectangular").trigger() #change tool to selection
+			doc.waitForDone()
 		else:
-			if utility.document() is None:
+			if doc is None:
 				utility.errorMessage("Please open a document. Please check details.", "For image generation a document with a size at or above 384x384, color model 'RGB/Alpha', color depth '8-bit integer' and a paint layer is needed.")
 				return
-			if utility.document().selection() is None:
+			if doc.selection() is None:
 				utility.errorMessage("Make a selection.", "Please select a region of the document before enabling mask mode.")
 				return
 			qDebug("Enabling mask mode...")
@@ -71,6 +65,13 @@ class Dialog(QWidget):
 			self.maskButton.setText("Cancel")
 			self.img2imgButton.setText("Inpaint")
 			self.maskButton.setStyleSheet("background-color:#890000;")
+
+			maskNode = utility.createMaskNode()
+			if maskNode is None:
+				return
+			doc.setActiveNode(maskNode) #activate new layer
+			Krita.instance().action("KritaShape/KisToolDyna").trigger() #set tool to brush for inpaint mask
+			doc.waitForDone()
 
 	def img2imgGenerate(self):
 		if utility.document().selection() is None:

@@ -71,3 +71,4 @@ Multiple Image results
 ### Known bugs that I can't be bothered to solve just yet:
 Crashes if internet connection is lost while requesting.  
 Errors on first load when API key is blank.  
+Sometimes Mask mode gets reversed (is a toggle in Krita, no easy way to check state). If it happens, delete the selection mask node.  

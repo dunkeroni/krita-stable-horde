@@ -79,34 +79,15 @@ class Worker():
 
             selectionHandler.putImageIntoBounds(bytes, self.bounds, seed)
         self.pushEvent(str(len(images)) + " images generated.")
-
-    def displayGenerated2(self, images):
-        for image in images:
-            seed = image["seed"]
-
-            if re.match("^https.*", image["img"]):
-                response = urllib.request.urlopen(image["img"])
-                bytes = response.read()
-                qDebug("Image bytes retrieved from URL")
-            else:
-                bytes = base64.b64decode(image["img"])
-                bytes = QByteArray(bytes)
-                qDebug("Image bytes retrieved from Horde message")
-
-            selectionHandler.putImageIntoBounds(bytes, self.bounds, seed)
-            qDebug("Image inserted into bounds, waiting until done")
-            doc = utility.document()
-            doc.waitForDone()
-            qDebug("Image inserted into bounds, done")
-            doc.refreshProjection()
-            qDebug("Image inserted into bounds, projection refreshed")
-        self.pushEvent(str(len(images)) + " images generated.")
+        self.dialog.setEnabledStatus(True)
         self.dialog.updateUserInfo(self.dialog.apikey.text())
+
 
     def pushEvent(self, message, eventType = utility.UpdateEvent.TYPE_CHECKED):
         #posts an event through a new UpdateEvent instance for the current multithreaded instance to provide status messages without crashing krita
         ev = utility.UpdateEvent(self.eventId, eventType, message)
         QApplication.postEvent(self.dialog, ev)
+
 
     def checkStatus(self):
         #get the status of the current generation
@@ -187,7 +168,7 @@ class Worker():
         params.update({"height": gh})
 
         if img2img:
-            init = selectionHandler.getEncodedImageFromBounds(self.bounds)
+            init = selectionHandler.getEncodedImageFromBounds(self.bounds, inpainting)
             data.update({"source_image": init})
             data.update({"source_processing": "img2img"})
             params.update({"hires_fix": False})

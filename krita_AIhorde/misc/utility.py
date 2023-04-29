@@ -8,6 +8,7 @@ import json
 import urllib, urllib.request
 
 VERSION = 134
+INPAINT_MASK_NAME = "Inpaint Mask"
 
 def errorMessage(text, detailed):
    msgBox = QMessageBox()
@@ -18,7 +19,7 @@ def errorMessage(text, detailed):
    msgBox.exec()
 
 def document() -> Document:
-   #This function makes it so that only this file has warnings in the IDE. It's a hack, but it works, and it's pretty.
+   #This function makes it so that only this file has warnings in the IDE. It's a hack, but it's pretty.
    return Application.activeDocument()
 
 def readSettings():
@@ -119,7 +120,7 @@ class Checker():
 
       return found
 
-class UpdateEvent(QEvent):
+class UpdateEvent(QEvent): #used to create status messages from threaded functions
    TYPE_CHECKED = 0
    TYPE_ERROR = 1
    TYPE_INFO = 2
@@ -129,3 +130,26 @@ class UpdateEvent(QEvent):
       self.updateType = updateType
       self.message = message
       super().__init__(eventId)
+
+
+def deleteMaskNode():
+   doc = document()
+   if doc is None:
+      return None
+   maskNode = doc.nodeByName(INPAINT_MASK_NAME)
+   if maskNode is not None:
+      doc.setActiveNode(maskNode)
+      Krita.instance().action('remove_layer').trigger()
+
+def createMaskNode():
+   doc = document()
+   if doc is None:
+      return None
+   maskNode = doc.nodeByName(INPAINT_MASK_NAME)
+   if maskNode is not None:
+      qDebug("Mask node already exists, deleting...")
+      deleteMaskNode() #get rid of existing mask node
+   maskNode = doc.createNode(INPAINT_MASK_NAME, "paintlayer")
+   doc.rootNode().addChildNode(maskNode, None)
+   qDebug("Created mask node.")
+   return maskNode

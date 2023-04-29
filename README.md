@@ -26,7 +26,7 @@ The plugin has been tested in Krita 5.1.3
 5. [OPTIONAL] Settings > Dockers > Log Viewer, and click the "enable logging" button on it to see the debug info from the plugin.
 
 ## Generate images
-Now we are ready for generating images.
+INSTRUCTIONS OUTDATED. WILL UPDATE SOON.  
 
 1. Start Krita and create a new document with a size between 384x384 and 1024x1024, color mode "RGB/Alpha" (default), color depth 8bit (default) and a paint layer. The generated image will have the size of the document or is a bit smaller. Check below for an explanation.
    - Stable diffusion only generates image sizes which are a multiple of 64. This means, if your document has a size of 650x512, the generated image will have a size of 640x512.

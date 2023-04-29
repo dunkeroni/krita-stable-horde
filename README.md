@@ -13,9 +13,17 @@ The plugin has been tested in Krita 5.1.3
 
 1. Download the repository as a zip.
 
-2. Start Krita and open the "Tools/Scripts/Import Python Plugin from File" menu and select the downloaded zip. Restart Krita.
+2. Copy the krita_AIhorde.py file and krita_AIhorde folder into your Krita plugin folder. The plugin folder is located at:
+   - Windows: ```C:\Users\<username>\AppData\Roaming\krita\pykrita```  
+   - Linux: ```~/.local/share/krita/pykrita```  
+   - MacOS: ```~/Library/Application Support/krita/pykrita```  
+   (Linux and MacOS locations were hallucinated by an AI, those locations might not be real. If you know the correct locations, please let me know.)  
 
-3. You should see now the new menu item "Tools/Scripts/Stablehorde". If this is not the case, something went wrong.
+3. Start Krita. Go to Settings > Configure Krita > Python Plugin Manager. You should see the "Krita AI Horde" plugin in the list. Enable it and restart Krita.  
+
+4. Enable Settings > Dockers > AI Horde. The docker should appear on the left side.  
+
+5. [OPTIONAL] Settings > Dockers > Log Viewer, and click the "enable logging" button on it to see the debug info from the plugin.
 
 ## Generate images
 Now we are ready for generating images.

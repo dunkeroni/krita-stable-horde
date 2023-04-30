@@ -133,7 +133,30 @@ def getEncodedImageFromBounds(bounds, inpainting = False):
     data = data.decode("ascii")
     return data
 
-def putImageIntoBounds(bytes, bounds, nametag="new generation"):
+def getImg2ImgMask(bounds):
+    qDebug("Inpainting, using selection bounds")
+    [x, y, w, h] = bounds[1] #bounds[1] is the adjusted selection bounds
+    [gw, gh] = bounds[2]
+    doc = utility.document()
+    maskNode = doc.nodeByName(utility.INPAINT_MASK_NAME)
+    if maskNode is None:
+        qDebug("No inpainting mask found. Did you delete?")
+        return None
+    else:
+        mask = maskNode.duplicate() #skip the rest of this nonsense
+        utility.deleteMaskNode()
+        return mask #skip the rest of this nonsense
+        qDebug("Saving img2img mask for inpainting mode")
+        alphaChannel = maskNode.channels()[3]
+        alphaPixels = alphaChannel.pixelData(QRect(x, y, w, h))
+        mask = QImage(alphaPixels.data(), w, h, QImage.Format_Alpha8).scaled(gw, gh, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
+        #maskbytes = maskNode.pixelData(x, y, w, h)
+        #mask = QImage(maskbytes.data(), w, h, QImage.Format_RGBA8888).scaled(gw, gh, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
+        utility.deleteMaskNode()
+        doc.waitForDone()
+        return mask
+
+def putImageIntoBounds(bytes, bounds, nametag="new generation", mask = None):
     try:
         qDebug("putImageIntoBounds: " + str(bounds))
         x, y, w, h = bounds[1] #bounds[1] is the adjusted selection bounds
@@ -143,6 +166,7 @@ def putImageIntoBounds(bytes, bounds, nametag="new generation"):
         image = QImage()
         image.loadFromData(bytes, 'WEBP')
         qDebug("Found image size is %dx%d. Resizing to selection bounds" % (image.width(), image.height()))
+        
         image = image.scaled(w, h, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
         qDebug("cropping to w: %d, h: %d" % (ws, hs))
         image = image.copy(xs - x, ys - y, ws, hs)
@@ -155,6 +179,14 @@ def putImageIntoBounds(bytes, bounds, nametag="new generation"):
         qDebug("node added: " + str(nametag))
         node.setPixelData(QByteArray(ptr.asstring()), xs, ys, ws, hs)
         qDebug("pixel data added")
+
+        if mask is not None:
+            qDebug("Applying inpainting mask")
+            thisMask = mask.duplicate() #necessary if there were multiple generations
+            root.addChildNode(thisMask, None)
+            doc.setActiveNode(thisMask)
+            Krita.instance().action('convert_to_transparency_mask').trigger()
+            
     except:
         qDebug("failed to display image")
         raise Exception("Failed to display image. Something horrible happened instead.")

@@ -34,6 +34,13 @@ INSTRUCTIONS OUTDATED. WILL UPDATE SOON.
 
 2. Select the new "Tools/Scripts/Stablehorde" menu item. A dialog will open, where you can enter the details for the image generation.
 
+**New Inpainting Interface**
+1. Generate an image normally. Select an area of the image and click the "Mask" button. This will create a new layer with the mask and change your tool to the Brush. USE WHITE FOR INPAINTING: Currently the mask works by conversion to a Transparency layer after generation, so White is opaque, and Black is transparent. 
+
+2. Hit the Inpaint button to generate a new image based on the mask. This actually sends the image through the Img2Img pipeline, so denoise values above 0.5 will have visible seams.
+
+3. The resulting images should have transparency masks applied to them when they display. You can edit the transparency mask layers to change the inpainting area after generation, or arrange them to combine multiple results.
+
 **Basic Tab**
 
    - **Generation Mode:** 

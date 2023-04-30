@@ -157,6 +157,7 @@ class Dialog(QWidget):
 		self.facefixer_strength.setEnabled(status)
 		self.upscale.setEnabled(status)
 		self.generateButton.setEnabled(status)
+		self.img2imgButton.setEnabled(status)
 
 	def setupBasicTab(self, settings):
 		# ================ Basic Tab ================
@@ -380,6 +381,11 @@ class Dialog(QWidget):
 		self.karras = QCheckBox()
 		self.karras.setChecked(settings["karras"])
 		layout.addRow("Karras",self.karras)
+
+		# UseRealInpaint mode
+		self.useRealInpaint = QCheckBox()
+		self.useRealInpaint.setChecked(False)
+		layout.addRow("Use Real Inpaint",self.useRealInpaint)
 
 
 		tabAdvanced.setLayout(layout)

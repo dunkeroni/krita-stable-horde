@@ -77,7 +77,8 @@ class Worker():
                 bytes = base64.b64decode(image["img"])
                 bytes = QByteArray(bytes)
 
-            selectionHandler.putImageIntoBounds(bytes, self.bounds, seed)
+            #selectionHandler.putImageIntoBounds(bytes, self.bounds, seed)
+            selectionHandler.putImageIntoBounds(bytes, self.bounds, seed, self.initMask)
         self.pushEvent(str(len(images)) + " images generated.")
         self.dialog.setEnabledStatus(True)
         self.dialog.updateUserInfo(self.dialog.apikey.text())
@@ -129,6 +130,7 @@ class Worker():
         self.cancelled = False
         self.id = None
         self.checkMax = (self.dialog.maxWait.value() * 60)/self.CHECK_WAIT
+        self.initMask = None
 
         #post processing = [] if 'None' otherwise get value from dialog
         post_processor = [self.dialog.postProcessing.currentText()] if self.dialog.postProcessing.currentText() != "None" else []
@@ -168,13 +170,15 @@ class Worker():
         params.update({"height": gh})
 
         if img2img:
-            init = selectionHandler.getEncodedImageFromBounds(self.bounds, inpainting)
+            if inpainting:
+                self.initMask = selectionHandler.getImg2ImgMask(self.bounds) #saved for later displaying
+            init = selectionHandler.getEncodedImageFromBounds(self.bounds, False)#inpainting) inpainting removed for img2img workaround
             data.update({"source_image": init})
             data.update({"source_processing": "img2img"})
             params.update({"hires_fix": False})
             params.update({"denoising_strength": self.dialog.denoise_strength.value()/100})
-        if inpainting: #implies img2img
-            data.update({"source_processing": "inpainting"})
+        #if inpainting: #implies img2img
+            #data.update({"source_processing": "inpainting"})
 
         apikey = "0000000000" if self.dialog.apikey.text() == "" else self.dialog.apikey.text()
         #utility.errorMessage("generation info:", str(data))

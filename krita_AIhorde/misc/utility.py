@@ -140,6 +140,8 @@ def deleteMaskNode():
    if maskNode is not None:
       doc.setActiveNode(maskNode)
       Krita.instance().action('remove_layer').trigger()
+      doc.waitForDone() #wait for the mask to be deleted, otherwise it leaves glitches in the img2img
+      doc.refreshProjection()
 
 def createMaskNode():
    doc = document()

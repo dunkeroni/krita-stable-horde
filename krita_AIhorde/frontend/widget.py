@@ -50,6 +50,7 @@ class Dialog(QWidget):
 			self.maskButton.setText("Mask")
 			self.img2imgButton.setText("Img2Img")
 			self.maskButton.setStyleSheet("background-color:#015F90;")
+			self.generateButton.setEnabled(True)
 			utility.deleteMaskNode() #get rid of masking layer
 			Krita.instance().action("KisToolSelectRectangular").trigger() #change tool to selection
 			doc.waitForDone()
@@ -65,6 +66,7 @@ class Dialog(QWidget):
 			self.maskButton.setText("Cancel")
 			self.img2imgButton.setText("Inpaint")
 			self.maskButton.setStyleSheet("background-color:#890000;")
+			self.generateButton.setEnabled(False)
 
 			maskNode = utility.createMaskNode()
 			if maskNode is None:
@@ -92,18 +94,6 @@ class Dialog(QWidget):
 		elif doc.colorModel() != "RGBA" or doc.colorDepth() != "U8":
 			utility.errorMessage("Invalid document properties. Please check details.", "For image generation a document with color model 'RGB/Alpha', color depth '8-bit integer' is needed.")
 			return
-		# document too small or large
-		#elif doc.width() < 384 or doc.width() > 1024 or doc.height() < 384 or doc.height() > 1024:
-			#utility.errorMessage("Invalid document size. Please check details.", "Document needs to be between 384x384 and 1024x1024.")
-			#return
-		# img2img/inpainting: missing init image layer
-		#elif (mode == self.worker.MODE_IMG2IMG or mode == self.worker.MODE_INPAINTING) and self.worker.getInitNode() is None:
-			#utility.errorMessage("Please add a visible layer which shows the init/inpainting image.", "")
-			#return
-		# img2img/inpainting: selection has to be removed otherwise crashes krita when creating init image
-		#elif (mode == self.worker.MODE_IMG2IMG or mode == self.worker.MODE_INPAINTING) and doc.selection() is not None:
-			#utility.errorMessage("Please remove the selection by clicking on the image.", "")
-			#return
 		# no prompt
 		elif len(self.prompt.toPlainText()) == 0:
 			utility.errorMessage("Please enter a prompt.", "")
@@ -111,6 +101,7 @@ class Dialog(QWidget):
 		else:
 			utility.writeSettings(self)
 			self.setEnabledStatus(False)
+			self.updateUserInfo() #doesn't work later in threaded instances, so might as well do it early
 			self.statusDisplay.setText("Waiting for generated image...")
 			self.worker.generate(self, img2img, inpainting)
 
@@ -134,7 +125,6 @@ class Dialog(QWidget):
 	def reject(self):
 		self.worker.cancel()
 		utility.writeSettings(self)
-		super().reject()
 
 	def setEnabledStatus(self, status):
 		#Update these to include all the widgets that should be disabled when generating

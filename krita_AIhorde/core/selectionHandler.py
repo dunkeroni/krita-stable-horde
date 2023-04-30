@@ -133,28 +133,18 @@ def getEncodedImageFromBounds(bounds, inpainting = False):
     data = data.decode("ascii")
     return data
 
-def getImg2ImgMask(bounds):
-    qDebug("Inpainting, using selection bounds")
-    [x, y, w, h] = bounds[1] #bounds[1] is the adjusted selection bounds
-    [gw, gh] = bounds[2]
+def getImg2ImgMask():
+    qDebug("getImg2ImgMask")
     doc = utility.document()
     maskNode = doc.nodeByName(utility.INPAINT_MASK_NAME)
     if maskNode is None:
         qDebug("No inpainting mask found. Did you delete?")
         return None
     else:
+        qDebug("Mask layer found. Will apply to result.")
         mask = maskNode.duplicate() #skip the rest of this nonsense
         utility.deleteMaskNode()
         return mask #skip the rest of this nonsense
-        qDebug("Saving img2img mask for inpainting mode")
-        alphaChannel = maskNode.channels()[3]
-        alphaPixels = alphaChannel.pixelData(QRect(x, y, w, h))
-        mask = QImage(alphaPixels.data(), w, h, QImage.Format_Alpha8).scaled(gw, gh, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
-        #maskbytes = maskNode.pixelData(x, y, w, h)
-        #mask = QImage(maskbytes.data(), w, h, QImage.Format_RGBA8888).scaled(gw, gh, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
-        utility.deleteMaskNode()
-        doc.waitForDone()
-        return mask
 
 def putImageIntoBounds(bytes, bounds, nametag="new generation", mask = None):
     try:

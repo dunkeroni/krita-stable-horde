@@ -32,40 +32,6 @@ class Worker():
 
     ssl._create_default_https_context = ssl._create_unverified_context
 
-    def getInitImage(self):
-        doc = utility.document()
-        nodeInit = self.getInitNode()
-
-        if nodeInit is not None:
-            if doc.selection() is not None:
-                raise Exception("Selection has to be removed before creating init image.")
-
-            bytes = nodeInit.pixelData(0, 0, doc.width(), doc.height())
-            image = QImage(bytes.data(), doc.width(), doc.height(), QImage.Format_RGBA8888).rgbSwapped()
-            bytes = QByteArray()
-            buffer = QBuffer(bytes)
-            image.save(buffer, "WEBP")
-            data = base64.b64encode(bytes.data())
-            data = data.decode("ascii")
-            return data
-        else:
-            raise Exception("No layer with init image found.")
-
-    def getInitNode(self) -> Node:
-        #convert visible pixels into a new top layer node
-        Krita.instance().action('new_from_visible').trigger() ##ISSUE: THIS BLOCK GETS CALLED TWICE ON IMG2IMG
-
-        doc = utility.document()
-        nodes = doc.topLevelNodes()
-
-        nodeInit = None
-
-        for node in nodes:
-            if node.visible() is True:
-                nodeInit = node
-
-        return nodeInit
-
     def displayGenerated(self, images):
         for image in images:
             seed = image["seed"]
@@ -81,8 +47,6 @@ class Worker():
             selectionHandler.putImageIntoBounds(bytes, self.bounds, seed, self.initMask)
         self.pushEvent(str(len(images)) + " images generated.")
         self.dialog.setEnabledStatus(True)
-        self.dialog.updateUserInfo(self.dialog.apikey.text())
-
 
     def pushEvent(self, message, eventType = utility.UpdateEvent.TYPE_CHECKED):
         #posts an event through a new UpdateEvent instance for the current multithreaded instance to provide status messages without crashing krita
@@ -120,9 +84,11 @@ class Worker():
         elif data["processing"] > 0:
             self.pushEvent("Generating...\nWaiting: " + str(data["waiting"]) + "\nProcessing: " + str(data["processing"]) + "\nFinished: " + str(data["finished"]))
 
-        timer = threading.Timer(self.CHECK_WAIT, self.checkStatus)
-        timer.start()
-        return
+        if not self.cancelled:
+            timer = threading.Timer(self.CHECK_WAIT, self.checkStatus)
+            timer.start()
+        else:
+            self.pushEvent("Generation cancelled.", utility.UpdateEvent.TYPE_CANCELLED)
 
     def generate(self, dialog: widget.Dialog, img2img = False, inpainting = False):
         self.dialog = dialog
@@ -171,7 +137,7 @@ class Worker():
 
         if img2img:
             if inpainting:
-                self.initMask = selectionHandler.getImg2ImgMask(self.bounds) #saved for later displaying
+                self.initMask = selectionHandler.getImg2ImgMask() #saved for later displaying
             init = selectionHandler.getEncodedImageFromBounds(self.bounds, False)#inpainting) inpainting removed for img2img workaround
             data.update({"source_image": init})
             data.update({"source_processing": "img2img"})

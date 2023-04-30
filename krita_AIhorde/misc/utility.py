@@ -131,7 +131,6 @@ class UpdateEvent(QEvent): #used to create status messages from threaded functio
       self.message = message
       super().__init__(eventId)
 
-
 def deleteMaskNode():
    doc = document()
    if doc is None:

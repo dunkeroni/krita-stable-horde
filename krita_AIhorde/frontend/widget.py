@@ -407,6 +407,11 @@ class Dialog(QWidget):
 		self.trusted.setReadOnly(True)
 		layout.addRow("Trusted", self.trusted)
 
+		#concurrency
+		self.concurrency = QLineEdit()
+		self.concurrency.setReadOnly(True)
+		layout.addRow("Concurrency", self.concurrency)
+
 		# usage["requests"]
 		self.requests = QLineEdit()
 		self.requests.setReadOnly(True)
@@ -437,5 +442,6 @@ class Dialog(QWidget):
 			self.userID.setText(self.userInfo["username"])
 			self.kudos.setText(str(self.userInfo["kudos"]))
 			self.trusted.setText(str(self.userInfo["trusted"]))
+			self.concurrency.setText(str(self.userInfo["concurrency"]))
 			self.requests.setText(str(self.userInfo["records"]["request"]["image"]))
 			self.contributions.setText(str(self.userInfo["records"]["fulfillment"]["image"]))

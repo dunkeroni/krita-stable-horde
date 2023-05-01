@@ -61,6 +61,11 @@ class Worker():
         self.checkCounter = self.checkCounter + 1
         #escape conditions
 
+        if self.cancelled:
+            self.pushEvent("Generation cancelled.", utility.UpdateEvent.TYPE_CANCELLED)
+            qDebug("Generation cancelled.")
+            return
+
         if not data:
             self.cancel("Error calling Horde. Are you connected to the internet?")
             return
@@ -84,11 +89,8 @@ class Worker():
         elif data["processing"] > 0:
             self.pushEvent("Generating...\nWaiting: " + str(data["waiting"]) + "\nProcessing: " + str(data["processing"]) + "\nFinished: " + str(data["finished"]))
 
-        if not self.cancelled:
-            timer = threading.Timer(self.CHECK_WAIT, self.checkStatus)
-            timer.start()
-        else:
-            self.pushEvent("Generation cancelled.", utility.UpdateEvent.TYPE_CANCELLED)
+        timer = threading.Timer(self.CHECK_WAIT, self.checkStatus)
+        timer.start()
 
     def generate(self, dialog: widget.Dialog, img2img = False, inpainting = False):
         self.dialog = dialog

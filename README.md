@@ -26,7 +26,7 @@ The plugin has been tested in Krita 5.1.3
 5. [OPTIONAL] Settings > Dockers > Log Viewer, and click the "enable logging" button on it to see the debug info from the plugin.
 
 ## Generate images
-1. Start Krita and create a new document with color mode "RGB/Alpha" (default), color depth 8bit (default) and a paint layer. 512, but not all larger sizes.
+1. Start Krita and create a new document with color mode "RGB/Alpha" (default), color depth 8bit (default) and a paint layer.
 
 2. Open the AI Horde docker if it is not on already. Enter your API key. If you don't have an API key, you can get one for free at [AIhorde](https://aihorde.net). This only needs to be done once, and will be saved for future sessions.
 

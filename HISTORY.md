@@ -1,7 +1,32 @@
 # History
-## Krita Plugin
+## Krita Plugin 2.X
 
-### For new changes, see commit log
+### 2.0.0
+Changes
+- Changed interface to Docker instead of popup window  
+- Inpainting mode is now done with masked img2img. This allows low denoise since it uses the original image. Real inpaint will be fixed later on.  
+#### Added features:
+- Model Selection option  
+- Sampler Selection option  
+- Negative Prompts  
+- Highres Fix  
+- Karras  
+- Post Processors  
+- CLIP skip  
+- Generate on Selection (Txt2Img/Img2Img/Inpainting)  
+- Inpainting Mask Mode  
+- Min/Max Resolution limits  
+- User Information (kudos, stats)  
+- Debug and information logging via the built-in Krita logger docker  
+- On-the-fly kudos calculation added to the generate buttons
+- Lots of backend organization and restructuring
+
+#### Known Issues:
+- Crashes if internet connection is lost while request is active.  
+- Throws an error on startup on when the API key field is blank.   
+
+
+## Original Repo 1.X versions:
 
 ### 1.3.4
 Changes

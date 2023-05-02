@@ -2,10 +2,11 @@ from PyKrita import * #fake import for IDE
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+import math
 
 from ..misc import utility
 from ..core import hordeAPI, horde
-from ..misc import range_slider
+from ..misc import range_slider, kudos
 
 
 class Dialog(QWidget):
@@ -32,6 +33,8 @@ class Dialog(QWidget):
 
 		self.setLayout(self.layout)
 		self.resize(350, 300)
+
+		self.estimateKudos()
 
 		if utils.checkWebpSupport() is False:
 			self.generateButton.setEnabled(False)
@@ -74,6 +77,7 @@ class Dialog(QWidget):
 			doc.setActiveNode(maskNode) #activate new layer
 			Krita.instance().action("KritaShape/KisToolDyna").trigger() #set tool to brush for inpaint mask
 			doc.waitForDone()
+		self.estimateKudos()
 
 	def img2imgGenerate(self):
 		if utility.document().selection() is None:
@@ -88,7 +92,7 @@ class Dialog(QWidget):
 
 		# no document
 		if doc is None:
-			utility.errorMessage("Please open a document. Please check details.", "For image generation a document with a size at or above 384x384, color model 'RGB/Alpha', color depth '8-bit integer' and a paint layer is needed.")
+			utility.errorMessage("Please open a document. Please check details.", "For image generation a document with color model 'RGB/Alpha', color depth '8-bit integer' and a paint layer is needed.")
 			return
 		# document has invalid color model or depth
 		elif doc.colorModel() != "RGBA" or doc.colorDepth() != "U8":
@@ -148,6 +152,52 @@ class Dialog(QWidget):
 		self.upscale.setEnabled(status)
 		self.generateButton.setEnabled(status)
 		self.img2imgButton.setEnabled(status)
+		self.maskButton.setEnabled(status)
+		self.priceCheck.setEnabled(status)
+
+
+	def estimateKudos(self):
+		doc = utility.document()
+		if doc is None:
+			return
+		selection = doc.selection()
+		minSize = self.SizeRange.low()*64
+		maxSize = self.SizeRange.high()*64
+		if selection is None:
+			width = height = minSize
+		else: #stimate gen size
+			w = selection.width()
+			h = selection.height()
+			if max(w, h) > maxSize:
+				r = maxSize/min(w, h)
+			elif min(w, h) < minSize:
+				r = minSize/max(w, h)
+			else:
+				r = 1
+			width = math.ceil(w*r//64 + 1)*64
+			height = math.ceil(h*r//64 + 1)*64
+		
+		post = [self.postProcessing.currentText(), self.upscale.currentText()]
+		denoise = self.denoise_strength.value()/100
+		prompt = self.prompt.toPlainText() + " ### " + self.negativePrompt.toPlainText()
+
+		kt = kudos.calculateKudos(width, height, self.steps.value(), self.sampler.currentText(),
+			   False, False, denoise, post,
+			   False, prompt, False)
+
+		ki = kudos.calculateKudos(width, height, self.steps.value(), self.sampler.currentText(),
+			   True, True, self.denoise_strength.value()/100, post,
+			   False, self.prompt.toPlainText(), False)
+		
+		txtKudos = round(kt*self.numImages.value(),2)
+		imgKudos = round(ki*self.numImages.value(),2)
+
+		self.generateButton.setText("Generate (" + str(txtKudos) + " kudos)")
+		if self.maskMode:
+			self.img2imgButton.setText("Inpaint (" + str(imgKudos) + " kudos)")
+		else:
+			self.img2imgButton.setText("Img2Img (" + str(imgKudos) + " kudos)")
+
 
 	def setupBasicTab(self, settings):
 		# ================ Basic Tab ================
@@ -158,7 +208,9 @@ class Dialog(QWidget):
 		self.generateButton = QPushButton("Generate")
 		self.generateButton.clicked.connect(self.generate)
 		self.generateButton.setStyleSheet("background-color:#A04200;")
-		layout.addWidget(self.generateButton)
+		self.priceCheck = QPushButton("checkKudos")
+		self.priceCheck.clicked.connect(self.estimateKudos)
+		layout.addRow(self.priceCheck, self.generateButton)
 
 		# Mask and Img2Img buttons
 		self.maskButton = QPushButton("Mask")
@@ -183,6 +235,7 @@ class Dialog(QWidget):
 		container = QWidget()
 		container.setLayout(layoutH)
 		layout.addRow("Denoising", container)
+		self.denoise_strength.valueChanged.connect(self.estimateKudos)
 
 		#multi size range slider
 		self.SizeRange = range_slider.RangeSlider(Qt.Orientation.Horizontal, self)
@@ -197,6 +250,7 @@ class Dialog(QWidget):
 		container = QWidget()
 		container.setLayout(layoutH)
 		layout.addRow("Size Range", container)
+		self.SizeRange.sliderMoved.connect(self.estimateKudos)
 
 		# Seed
 		self.seed = QLineEdit()
@@ -221,12 +275,14 @@ class Dialog(QWidget):
 			self.sampler.addItem(sampler)
 		self.sampler.setCurrentIndex(3)
 		layout.addRow("Sampler", self.sampler)
+		self.sampler.currentTextChanged.connect(self.estimateKudos)
 
 		#number of images
 		self.numImages = QSpinBox()
 		self.numImages.setRange(1, 10)
 		self.numImages.setValue(1)
 		layout.addRow("Number of Images", self.numImages)
+		self.numImages.valueChanged.connect(self.estimateKudos)
 		
 		# Steps
 		slider = QSlider(Qt.Orientation.Horizontal, self)
@@ -242,6 +298,7 @@ class Dialog(QWidget):
 		container = QWidget()
 		container.setLayout(layoutH)
 		layout.addRow("Steps", container)
+		self.steps.valueChanged.connect(self.estimateKudos)
 		
 		#HighResFix
 		self.highResFix = QCheckBox()
@@ -265,6 +322,7 @@ class Dialog(QWidget):
 			self.postProcessing.addItem(postProcessing)
 		self.postProcessing.setCurrentIndex(0)
 		layout.addRow("Post Processing", self.postProcessing)
+		self.postProcessing.currentTextChanged.connect(self.estimateKudos)
 
 		# facefixer_strength
 		slider = QSlider(Qt.Orientation.Horizontal, self)
@@ -288,6 +346,7 @@ class Dialog(QWidget):
 			self.upscale.addItem(upscale)
 		self.upscale.setCurrentIndex(0)
 		layout.addRow("Upscaler", self.upscale)
+		self.upscale.currentTextChanged.connect(self.estimateKudos)
 
 		# Status
 		self.statusDisplay = QTextEdit()

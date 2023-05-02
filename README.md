@@ -26,22 +26,32 @@ The plugin has been tested in Krita 5.1.3
 5. [OPTIONAL] Settings > Dockers > Log Viewer, and click the "enable logging" button on it to see the debug info from the plugin.
 
 ## Generate images
-INSTRUCTIONS OUTDATED. DOC SIZE NO LONGER MATTERS. WILL UPDATE SOON.  
+1. Start Krita and create a new document with color mode "RGB/Alpha" (default), color depth 8bit (default) and a paint layer. 512, but not all larger sizes.
 
-1. Start Krita and create a new document with a size between 384x384 and 1024x1024, color mode "RGB/Alpha" (default), color depth 8bit (default) and a paint layer. The generated image will have the size of the document or is a bit smaller. Check below for an explanation.
-   - Stable diffusion only generates image sizes which are a multiple of 64. This means, if your document has a size of 650x512, the generated image will have a size of 640x512.
-   - The larger the image, the longer you have to wait for generation. The reason is, that all servers in the cluster support 512x512, but not all larger sizes.
+2. Open the AI Horde docker if it is not on already. Enter your API key. If you don't have an API key, you can get one for free at [AIhorde](https://aihorde.net). This only needs to be done once, and will be saved for future sessions.
 
-2. Select the new "Tools/Scripts/Stablehorde" menu item. A dialog will open, where you can enter the details for the image generation.
+3. Select a model from the list. They will be ordered based on the number of active workers available for the request, with more popular models at the top. Models without many workers may take longer to generate an image, since they often need to load the model from disc first.
+
+4. Enter a prompt, and hit Generate. Optionally, you can select a region of the canvas to generate in. If you do not make a selection, then the generated image will be a square in the center of your document with resolution equal to your selected minimum size.
 
 **New Inpainting Interface**
 1. Generate an image normally. Select an area of the image and click the "Mask" button. This will create a new layer with the mask and change your tool to the Brush. USE WHITE FOR INPAINTING: Currently the mask works by conversion to a Transparency layer after generation, so White is opaque, and Black is transparent. 
 
 2. Hit the Inpaint button to generate a new image based on the mask. This actually sends the image through the Img2Img pipeline, so denoise values above 0.5 will have visible seams.
 
-3. The resulting images should have transparency masks applied to them when they display. You can edit the transparency mask layers to change the inpainting area after generation, or arrange them to combine multiple results.
+3. The resulting images should have transparency masks applied to them when they display. You can edit the transparency mask layers to change the inpainting area after generation, or arrange them to combine multiple results. This is especially helpful when inpainting multiple subjects in a crowd.
 
-**Basic Tab**
+**Postprocessing Workflow Tips**
+Images post-processed with upscalers will return a larger image than the generation area, but the interface compressess all images to the generation area. For best effect, use the following method:  
+1. Select a large area of the canvas to generate in. Alternatively, CTRL+A to select the entire space if your canvas is already the size of your intended output.
+
+2. Set the Max Resolution slider to be 1/2 or 1/4 of the size of your selected area, depending on the upscaler you choose.
+
+3. Generate the image. The resulting image will be larger than the generation area, but will be compressed to fit the generation area. If your selection is larger than 2x the max resolution, and you use a 2x upscaler, then the resulting image will be expanded (with some anti-aliasing) to fit.
+
+4. Go back and inpaint the subjects of the image to improve their details. For best results, use selections under 768x768 for each step.
+
+**Basic Tab (OUTDATED. WILL FIX IN FUTURE)**
 
    - **Generation Mode:** 
       - **Text -> Image:** Generate an image based on your prompt.

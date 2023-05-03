@@ -111,7 +111,7 @@ class Worker():
 
         params = {
             "sampler_name": self.dialog.sampler.currentText(),
-            "cfg_scale": self.dialog.promptStrength.value(),
+            "cfg_scale": self.dialog.CFG.value(),
             "steps": int(self.dialog.steps.value()),
             "seed": self.dialog.seed.text(),
             "hires_fix": self.dialog.highResFix.isChecked(),

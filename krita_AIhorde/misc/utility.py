@@ -6,6 +6,7 @@ from PyQt5.QtGui import *
 
 import json
 import urllib, urllib.request
+from ..frontend import widget
 
 VERSION = 200
 INPAINT_MASK_NAME = "Inpaint Mask"
@@ -58,12 +59,12 @@ def readSettings():
 
    return settings
 
-def writeSettings(dialog):
+def writeSettings(dialog: widget.Dialog):
    settings = {
       "denoise_strength": dialog.denoise_strength.value(),
       "prompt": dialog.prompt.toPlainText(),
       "negativePrompt": dialog.negativePrompt.toPlainText(),
-      "promptStrength": dialog.promptStrength.value(),
+      "promptStrength": dialog.CFG.value(),
       "steps": int(dialog.steps.value()),
       "seed": dialog.seed.text(),
       "nsfw": dialog.nsfw.checkState(),
@@ -79,46 +80,30 @@ def writeSettings(dialog):
    except Exception as ex:
       ex = ex
 
-class Checker():
-   updateChecked = False
+def checkUpdate():
+   try:
+      url = "https://raw.githubusercontent.com/dunkeroni/krita-stable-horde/main/version.json"
+      response = urllib.request.urlopen(url)
+      data = response.read()
+      data = json.loads(data)
 
-   def errorMessage(self, text, detailed):
-      msgBox = QMessageBox()
-      msgBox.setWindowTitle("Stablehorde")
-      msgBox.setText(text)
-      msgBox.setDetailedText(detailed)
-      msgBox.setStyleSheet("QLabel{min-width: 300px;}")
-      msgBox.exec()
-
-   def checkUpdate(self):
-      if self.updateChecked is False:
-         try:
-            url = "https://raw.githubusercontent.com/dunkeroni/krita-stable-horde/main/version.json"
-            response = urllib.request.urlopen(url)
-            data = response.read()
-            data = json.loads(data)
-
-            self.updateChecked = True
-
-            if VERSION < int(data["version"]):
-               return {"update": True, "message": data["message"]}
-            else:
-               return {"update": False}
-         except Exception as ex:
-            return {"update": False}
+      if VERSION < int(data["version"]):
+         return {"update": True, "message": data["message"]}
       else:
          return {"update": False}
+   except Exception as ex:
+      return {"update": False}
 
-   def checkWebpSupport(self):
-      formats = QImageReader.supportedImageFormats()
-      found = False
+def checkWebpSupport():
+   formats = QImageReader.supportedImageFormats()
+   found = False
 
-      for format in formats:
-         if format.data().decode("ascii").lower() == "webp":
-            found = True
-            break
+   for format in formats:
+      if format.data().decode("ascii").lower() == "webp":
+         found = True
+         break
 
-      return found
+   return found
 
 class UpdateEvent(QEvent): #used to create status messages from threaded functions
    TYPE_CHECKED = 0

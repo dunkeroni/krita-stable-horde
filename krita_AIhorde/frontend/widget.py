@@ -257,4 +257,19 @@ class Dialog(QWidget):
 			self.concurrency.setText(str(self.userInfo["concurrency"]))
 			self.requests.setText(str(self.userInfo["records"]["request"]["image"]))
 			self.contributions.setText(str(self.userInfo["records"]["fulfillment"]["image"]))
-		
+	
+		#override
+	def customEvent(self, ev):
+		if ev.type() == self.actor.worker.eventId:
+			if ev.updateType == utility.UpdateEvent.TYPE_CHECKED:
+				self.statusDisplay.setText(ev.message)
+			elif ev.updateType == utility.UpdateEvent.TYPE_INFO:
+				self.statusDisplay.setText(ev.message)
+				self.setEnabledStatus(True)
+			elif ev.updateType == utility.UpdateEvent.TYPE_ERROR:
+				self.statusDisplay.setText("An error occurred: " + ev.message)
+				self.setEnabledStatus(True)
+			elif ev.updateType == utility.UpdateEvent.TYPE_FINISHED:
+				#set status to none and activate the generate button again
+				#self.statusDisplay.setText("Done.")
+				self.setEnabledStatus(True)

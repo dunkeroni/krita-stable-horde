@@ -23,18 +23,6 @@ class AIhorde(DockWidget):
 
    def createActions(self, window):
       pass
-      #action = window.createAction("generate", "Stablehorde", "tools/scripts")
-      #action.triggered.connect(self.openDialog)
 
-   #def openDialog(self):
-      #dialog = widget.Dialog(worker)
-      #dialog.exec()
-
-#Krita.instance().addExtension(AIhorde(Krita.instance()))
-#add AIhorde to the dockwidgetfactory
-#Krita.instance().addDockWidgetFactory(DockWidgetFactory("AIhorde", DockWidgetFactoryBase.DockRight, AIhorde))
-#utils = utility.Checker()
-#worker = horde.Worker()
 Krita.instance().addDockWidgetFactory(DockWidgetFactory("AIhorde", DockWidgetFactoryBase.DockLeft, AIhorde))
-#dialog = Dialog()
-#dialog.exec()
+

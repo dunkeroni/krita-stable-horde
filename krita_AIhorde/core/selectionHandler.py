@@ -1,7 +1,5 @@
-from PyKrita import * #fake import for IDE
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
+from krita import * #fake import for IDE
+from PyQt5.QtCore import qDebug
 
 import base64
 from ..misc import utility

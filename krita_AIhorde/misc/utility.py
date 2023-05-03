@@ -1,8 +1,5 @@
-from PyKrita import * #fake import for IDE
 from krita import *
-from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
-from PyQt5.QtGui import *
 
 import json
 import urllib, urllib.request
@@ -20,8 +17,7 @@ def errorMessage(text, detailed):
    msgBox.exec()
 
 def document() -> Document:
-   #This function makes it so that only this file has warnings in the IDE. It's a hack, but it's pretty.
-   return Application.activeDocument()
+   return Krita.instance().activeDocument()
 
 def readSettings():
    defaults = {
@@ -39,7 +35,7 @@ def readSettings():
    }
 
    try:
-      settings = Application.readSetting("Stablehorde", "Config", None)
+      settings = Krita.instance().readSetting("Stablehorde", "Config", None)
 
       if not settings:
          settings = defaults
@@ -76,7 +72,7 @@ def writeSettings(dialog: widget.Dialog):
    qDebug("Settings saved to file")
    try:
       settings = json.dumps(settings)
-      Application.writeSetting("Stablehorde", "Config", settings)
+      Krita.instance().writeSetting("Stablehorde", "Config", settings)
    except Exception as ex:
       ex = ex
 

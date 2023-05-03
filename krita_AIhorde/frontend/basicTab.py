@@ -55,7 +55,7 @@ def buildBasicTab(actor: UIactions.UIActor, basic, dialog):
 		SizeRange = range_slider.RangeSlider(Qt.Orientation.Horizontal, dialog)
 		SizeRange.setRange(4, 32) #increments of 64
 		SizeRange.setLow(8)
-		SizeRange.setHigh(32)
+		SizeRange.setHigh(16)
 		SizeRange.sliderMoved.connect(lambda: SizeRangeLabel.setText(str(SizeRange.low()*64) + " - " + str(SizeRange.high()*64)))
 		layoutH = QHBoxLayout()
 		layoutH.addWidget(SizeRange)

@@ -1,10 +1,7 @@
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
+from PyQt5.QtCore import qDebug
 import math
 
-from ..frontend import widget
-from ..core import horde, hordeAPI
+from ..core import horde
 from ..misc import utility, kudos
 
 class UIActor():

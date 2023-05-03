@@ -1,14 +1,10 @@
-from PyKrita import * #fake import for IDE
 from krita import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
+from PyQt5.QtCore import qDebug
 
 import base64
 import ssl
 import threading
 import urllib, urllib.request, urllib.error
-import math
 import re
 
 from ..misc import utility

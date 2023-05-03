@@ -1,4 +1,4 @@
-from PyKrita import * #fake import for IDE
+from krita import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -118,16 +118,10 @@ class Dialog(QWidget):
 		self.apikey.setText(settings["apikey"])
 
 	def generate(self):
-		settings = self.getCurrentSettings()
-		settings["img2img"] = False
-		settings["inpainting"] = False
-		self.actor.generate()#settings)
+		self.actor.generate(False, False)
 	
 	def img2imgGenerate(self):
-		settings = self.getCurrentSettings()
-		settings["img2img"] = True
-		settings["inpainting"] = self.maskMode
-		self.actor.img2imgGenerate()#settings)
+		self.actor.img2imgGenerate(True, self.maskMode)
 
 	def toggleMaskMode(self, forceDisable = False):
 		doc = utility.document()
@@ -235,6 +229,40 @@ class Dialog(QWidget):
 			"shared": False,
 			"replacement_filter": True
 		}
+	
+	def getPayloadData(self):
+		prompt = self.prompt.toPlainText() + (" ### " + self.negativePrompt.toPlainText() if self.negativePrompt.toPlainText() != "" else "")
+		post_processor = [self.postProcessing.currentText()] if self.postProcessing.currentText() != "None" else []
+		upscaler = [self.upscale.currentText()] if self.upscale.currentText() != "None" else []
+		post_process = post_processor + upscaler
+		params = {
+			"sampler_name": self.sampler.currentText(),
+			"cfg_scale": self.CFG.value(),
+			"steps": int(self.steps.value()),
+			"seed": self.seed.text(),
+			"hires_fix": self.highResFix.isChecked(),
+			"karras": self.karras.isChecked(),
+			"post_processing": post_process,
+			"facefixer_strength": self.facefixer_strength.value()/100,
+			"clip_skip": self.clip_skip.value(),
+			"n": self.numImages.value(),
+		}
+
+		data = {
+			#append negative prompt only if it is not empty
+			"prompt": prompt,
+			"params": params,
+			"nsfw": self.nsfw.isChecked(),
+			"trust_workers": False,
+			"slow_workers": True,
+			"censor_nsfw": False,
+			"r2": True,
+			"models": [self.model.currentData()],
+			"shared": False,
+			"replacement_filter": True
+		}
+
+		return data
 	
 	def updateKudos(self):
 		if utility.document() is None:

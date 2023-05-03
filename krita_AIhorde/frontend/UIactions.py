@@ -66,15 +66,16 @@ class UIActor():
 			width = math.ceil(w*r/64)*64
 			height = math.ceil(h*r/64)*64
 
-		kt = kudos.calculateKudos(width, height, settings["steps"], settings["sampler"],
+		kt = kudos.calculateKudos(width, height, settings["steps"], settings["sampler_name"],
 			   False, False, settings["denoise_strength"], settings["postProcessing"],
 			   False, settings["prompt"], settings["shared"])
 		
-		ki = kudos.calculateKudos(width, height, settings["steps"], settings["sampler"],
+		ki = kudos.calculateKudos(width, height, settings["steps"], settings["sampler_name"],
 			   True, True, settings["denoise_strength"], settings["postProcessing"],
 			   False, settings["prompt"], settings["shared"])
 		
-		txtKudos = round(kt*self.dialog.numImages.value(),2)
-		imgKudos = round(ki*self.dialog.numImages.value(),2)
-
+		txtKudos: float = round(kt*self.dialog.numImages.value(),2)
+		imgKudos: float = round(ki*self.dialog.numImages.value(),2)
+		#qDebug("Kudos: " + str(txtKudos) + " (txt) " + str(imgKudos) + " (img)")
+		#utility.errorMessage("Kudos", "Text: " + str(txtKudos) + "\nImage: " + str(imgKudos))
 		return [txtKudos, imgKudos]

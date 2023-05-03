@@ -34,7 +34,7 @@ class Dialog(QWidget):
 		self.applyLoadedSettings(self.settings)
 		
 		self.connectFunctions()
-		self.updateKudos()
+		#self.updateKudos()
 
 		if utility.checkWebpSupport() is False:
 			self.generateButton.setEnabled(False)
@@ -237,8 +237,10 @@ class Dialog(QWidget):
 		}
 	
 	def updateKudos(self):
+		if utility.document() is None:
+			return
 		settings = self.getCurrentSettings()
-		k = [0, 0] # self.actor.calculateKudos(settings)
+		k = self.actor.calculateKudos(settings)
 		self.generateButton.setText("Generate (" + str(k[0]) + " kudos)")
 		if self.maskMode:
 			self.img2imgButton.setText("Inpaint (" + str(k[1]) + " kudos)")

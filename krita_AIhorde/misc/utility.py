@@ -1,13 +1,10 @@
-from PyKrita import * #fake import for IDE
 from krita import *
-from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
-from PyQt5.QtGui import *
 
 import json
 import urllib, urllib.request
 
-VERSION = 200
+VERSION = 201
 INPAINT_MASK_NAME = "Inpaint Mask"
 
 def errorMessage(text, detailed):
@@ -19,8 +16,7 @@ def errorMessage(text, detailed):
    msgBox.exec()
 
 def document() -> Document:
-   #This function makes it so that only this file has warnings in the IDE. It's a hack, but it's pretty.
-   return Application.activeDocument()
+   return Krita.instance().activeDocument()
 
 def readSettings():
    defaults = {
@@ -35,90 +31,72 @@ def readSettings():
       "maxWait": 5,
       "karras": True,
       "clip_skip": 1,
+      "shared": False,
    }
 
    try:
-      settings = Application.readSetting("Stablehorde", "Config", None)
+      settings = Krita.instance().readSetting("Stablehorde", "Config", None)
 
       if not settings:
          settings = defaults
       else:
          settings = json.loads(settings)
-         missing = False
 
       for key in defaults:
          if not key in settings:
-            missing = True
+            settings[key] = defaults[key]
             break
-
-      if missing is True:
-         settings = defaults
    except Exception as ex:
       settings = defaults
 
    return settings
 
-def writeSettings(dialog):
+def writeSettings(dialogSettings: dict):
    settings = {
-      "denoise_strength": dialog.denoise_strength.value(),
-      "prompt": dialog.prompt.toPlainText(),
-      "negativePrompt": dialog.negativePrompt.toPlainText(),
-      "promptStrength": dialog.promptStrength.value(),
-      "steps": int(dialog.steps.value()),
-      "seed": dialog.seed.text(),
-      "nsfw": dialog.nsfw.checkState(),
-      "apikey": dialog.apikey.text(),
-      "maxWait": dialog.maxWait.value(),
-      "karras": dialog.karras.checkState(),
-      "clip_skip": dialog.clip_skip.value(),
+      "denoise_strength": dialogSettings["denoise_strength"],
+      "prompt": dialogSettings["prompt"],
+      "negativePrompt": dialogSettings["negativePrompt"],
+      "promptStrength": dialogSettings["CFG"],
+      "steps": dialogSettings["steps"],
+      "seed": dialogSettings["seed"],
+      "nsfw": dialogSettings["nsfw"],
+      "apikey": dialogSettings["apikey"],
+      "maxWait": dialogSettings["maxWait"],
+      "karras": dialogSettings["karras"],
+      "clip_skip": dialogSettings["clip_skip"],
+      "shared": dialogSettings["shared"],
    }
    qDebug("Settings saved to file")
    try:
       settings = json.dumps(settings)
-      Application.writeSetting("Stablehorde", "Config", settings)
+      Krita.instance().writeSetting("Stablehorde", "Config", settings)
    except Exception as ex:
       ex = ex
 
-class Checker():
-   updateChecked = False
+def checkUpdate():
+   try:
+      url = "https://raw.githubusercontent.com/dunkeroni/krita-stable-horde/main/version.json"
+      response = urllib.request.urlopen(url)
+      data = response.read()
+      data = json.loads(data)
 
-   def errorMessage(self, text, detailed):
-      msgBox = QMessageBox()
-      msgBox.setWindowTitle("Stablehorde")
-      msgBox.setText(text)
-      msgBox.setDetailedText(detailed)
-      msgBox.setStyleSheet("QLabel{min-width: 300px;}")
-      msgBox.exec()
-
-   def checkUpdate(self):
-      if self.updateChecked is False:
-         try:
-            url = "https://raw.githubusercontent.com/dunkeroni/krita-stable-horde/main/version.json"
-            response = urllib.request.urlopen(url)
-            data = response.read()
-            data = json.loads(data)
-
-            self.updateChecked = True
-
-            if VERSION < int(data["version"]):
-               return {"update": True, "message": data["message"]}
-            else:
-               return {"update": False}
-         except Exception as ex:
-            return {"update": False}
+      if VERSION < int(data["version"]):
+         return {"update": True, "message": data["message"]}
       else:
          return {"update": False}
+   except Exception as ex:
+      return {"update": False}
 
-   def checkWebpSupport(self):
-      formats = QImageReader.supportedImageFormats()
-      found = False
+def checkWebpSupport():
+   formats = QImageReader.supportedImageFormats()
+   found = False
 
-      for format in formats:
-         if format.data().decode("ascii").lower() == "webp":
-            found = True
-            break
+   for format in formats:
+      if format.data().decode("ascii").lower() == "webp":
+         found = True
+         break
 
-      return found
+   return found
 
 class UpdateEvent(QEvent): #used to create status messages from threaded functions
    TYPE_CHECKED = 0

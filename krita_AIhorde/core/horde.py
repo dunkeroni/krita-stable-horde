@@ -1,34 +1,25 @@
-from PyKrita import * #fake import for IDE
 from krita import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
+from PyQt5.QtCore import qDebug
 
 import base64
 import ssl
 import threading
 import urllib, urllib.request, urllib.error
-import math
 import re
 
 from ..misc import utility
 from ..core import hordeAPI, selectionHandler
-from ..frontend import widget
 
 class Worker():
-    API_ROOT = "https://aihorde.net/api/v2/"
     CHECK_WAIT = 5
-    MODE_TEXT2IMG = 1
-    MODE_IMG2IMG = 2
-    MODE_INPAINTING = 3
 
-    dialog = None
-    checkMax = None
-    checkCounter = 0
-    id = None
-    cancelled = False
-
-    eventId = QEvent.registerEventType()
+    def __init__(self, dialog):
+        self.dialog = dialog
+        self.canceled = False
+        self.checkMax = None
+        self.checkCounter = 0
+        self.id = None
+        self.eventId = QEvent.registerEventType()
 
     ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -46,7 +37,7 @@ class Worker():
             #selectionHandler.putImageIntoBounds(bytes, self.bounds, seed)
             selectionHandler.putImageIntoBounds(bytes, self.bounds, seed, self.initMask)
         self.pushEvent(str(len(images)) + " images generated.")
-        self.dialog.setEnabledStatus(True)
+        utility.UpdateEvent(self.eventId, utility.UpdateEvent.TYPE_FINISHED)
 
     def pushEvent(self, message, eventType = utility.UpdateEvent.TYPE_CHECKED):
         #posts an event through a new UpdateEvent instance for the current multithreaded instance to provide status messages without crashing krita
@@ -92,47 +83,17 @@ class Worker():
         timer = threading.Timer(self.CHECK_WAIT, self.checkStatus)
         timer.start()
 
-    def generate(self, dialog: widget.Dialog, img2img = False, inpainting = False):
-        self.dialog = dialog
+    def generate(self, settings: dict, img2img = False, inpainting = False):
+        #self.dialog = dialog
         self.checkCounter = 0
         self.cancelled = False
         self.id = None
         self.checkMax = (self.dialog.maxWait.value() * 60)/self.CHECK_WAIT
         self.initMask = None
+        data: dict = settings["payloadData"]
+        params: dict = data["params"]
 
-        #post processing = [] if 'None' otherwise get value from dialog
-        post_processor = [self.dialog.postProcessing.currentText()] if self.dialog.postProcessing.currentText() != "None" else []
-        #same for upscaler
-        upscaler = [self.dialog.upscale.currentText()] if self.dialog.upscale.currentText() != "None" else []
-        #combine into a single list
-        post_process = post_processor + upscaler
-
-        nsfw = True if self.dialog.nsfw.isChecked() else False
-
-        params = {
-            "sampler_name": self.dialog.sampler.currentText(),
-            "cfg_scale": self.dialog.promptStrength.value(),
-            "steps": int(self.dialog.steps.value()),
-            "seed": self.dialog.seed.text(),
-            "hires_fix": self.dialog.highResFix.isChecked(),
-            "karras": self.dialog.karras.isChecked(),
-            "post_processing": post_process,
-            "facefixer_strength": self.dialog.facefixer_strength.value()/100,
-            "clip_skip": self.dialog.clip_skip.value(),
-            "n": self.dialog.numImages.value(),
-        }
-
-        data = {
-            #append negative prompt only if it is not empty
-            "prompt": self.dialog.prompt.toPlainText() + (" ### " + self.dialog.negativePrompt.toPlainText() if self.dialog.negativePrompt.toPlainText() != "" else ""),
-            "params": params,
-            "nsfw": nsfw,
-            "censor_nsfw": False,
-            "r2": True,
-            "models": [self.dialog.model.currentData()]
-        }
-
-        self.bounds = selectionHandler.getI2Ibounds(self.dialog.SizeRange.low()*64, self.dialog.SizeRange.high()*64)
+        self.bounds = selectionHandler.getI2Ibounds(settings["minSize"], settings["maxSize"])
         [gw, gh] = self.bounds[2] #generation bounds already sized correctly and fit to multiple of 64
         params.update({"width": gw})
         params.update({"height": gh})
@@ -144,11 +105,11 @@ class Worker():
             data.update({"source_image": init})
             data.update({"source_processing": "img2img"})
             params.update({"hires_fix": False})
-            params.update({"denoising_strength": self.dialog.denoise_strength.value()/100})
+            params.update({"denoising_strength": settings["denoise_strength"]})
         #if inpainting: #implies img2img
             #data.update({"source_processing": "inpainting"})
 
-        apikey = "0000000000" if self.dialog.apikey.text() == "" else self.dialog.apikey.text()
+        apikey = "0000000000" if settings["apikey"] == "" else settings["apikey"]
         #utility.errorMessage("generation info:", str(data))
         jobInfo = hordeAPI.generate_async(data, apikey) #submit request for async generation
 

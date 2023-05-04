@@ -53,11 +53,6 @@ Images post-processed with upscalers will return a larger image than the generat
 
 **Basic Tab (OUTDATED. WILL FIX IN FUTURE)**
 
-   - **Generation Mode:** 
-      - **Text -> Image:** Generate an image based on your prompt.
-      - **Image -> Image:** Generate an image based on an init image and on your prompt.
-      - **Inpainting:** Erase a part of an image and generate a new image which has the erased part filled. The erased part is filled based on your prompt. To erase, select in Krita the eraser mode or use an eraser brush preset. If you make a selection, please make sure to remove this selection before generating by clicking on the image. 
-
    - **Denoising:** How much the AI should change the current image (when using img2img). Actually affects the generative steps and starting point; a value of 0.3 will set up the stable diffusion pipeline with the input image and only "complete" the last 30% of the denoising process.
 
    - **Seed:** This parameter is optional. If it is empty, a random seed will be generated on the server. If you use a seed, the same image is generated again in the case the same parameters for init strength, steps, etc. are used. A slightly different image will be generated, if the parameters are modified. You find the seed as part of the layer name of the layer, where the generated image is displayed. 
@@ -72,7 +67,7 @@ Images post-processed with upscalers will return a larger image than the generat
 
    - **Generate:** Start image generation. The values you inserted into the dialog will be transmitted to the server, which dispatches the request now to one of the stable-diffusion servers in the cluster. Your generation request is added to the queue. You will see now the status "Queue position..." and all input elements of the dialog are disabled. Generation can take between several seconds and several minutes depending on how many other requests are already in the queue and how many stable diffusion servers joined currently the cluster.<br>When the image has been generated successfully, it will be shown as a new layer of the opened document. The used seed is shown as a part of the name of the new layer. If an error during generation occurs, the error message will be shown in the status textarea and all input elements will be enabled again.
 
-   - **Cancel:** Close the dialog. If you cancel when you already started generation, generation will be stopped.
+   - **Cancel:** Stop waiting for results and enable docker inputs again. Usefull if something breaks. If you cancel when you already started generation, generation will be stopped.
 
 **Advanced Tab**
 
@@ -90,7 +85,9 @@ Images post-processed with upscalers will return a larger image than the generat
    - If you flag your request as NSFW, only servers which accept NSFW prompts work on the request. If you don't flag the prompt, but it is NSFW, you will receive a black image.
    - If you didn't flag your request as NSFW and don't prompt NSFW, you will receive in some cases a black image, although it's not NSFW (false positive). Just rerun the generation in that case.
 
-   - **Karras:** Magic. Improves generation with fewer steps.
+   - **Karras:** Magic. Improves generation with fewer steps.  
+
+   - **Share With LAION** Share your prompt with the LAION database for research and model tuning. If shared, the generation will cost less kudos.  
 
 ## Troubleshooting
 ### Linux

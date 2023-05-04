@@ -4,7 +4,7 @@ from PyQt5.QtCore import *
 import json
 import urllib, urllib.request
 
-VERSION = 200
+VERSION = 201
 INPAINT_MASK_NAME = "Inpaint Mask"
 
 def errorMessage(text, detailed):

@@ -43,7 +43,6 @@ class Dialog(QWidget):
 			self.statusDisplay.setText("Your operating system doesn't support the webp image format. Please check troubleshooting section of readme on GitHub for solution.")
 
 		update = utility.checkUpdate()
-
 		if update["update"] is True:
 			self.statusDisplay.setText(update["message"])
 	

@@ -1,6 +1,11 @@
 # History
 ## Krita Plugin 2.X
 
+### 2.0.1
+- more architecture fixes to allow for better feature expansion in the future
+- added Share With LAION database option
+- included link to git repository for update message
+
 ### 2.0.0
 Changes
 - Changed interface to Docker instead of popup window  
@@ -24,7 +29,6 @@ Changes
 #### Known Issues:
 - Crashes if internet connection is lost while request is active.  
 - Throws an error on startup on when the API key field is blank.   
-
 
 ## Original Repo 1.X versions:
 

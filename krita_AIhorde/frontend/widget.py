@@ -188,7 +188,7 @@ class Dialog(QWidget):
 	#override
 	def reject(self):
 		self.worker.cancel()
-		utility.writeSettings(self)
+		utility.writeSettings(self.getCurrentSettings())
 
 	def setEnabledStatus(self, status):
 		#Update these to include all the widgets that should be disabled when generating

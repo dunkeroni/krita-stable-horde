@@ -109,7 +109,7 @@ class Dialog(QWidget):
 		self.shareWithLAION.stateChanged.connect(self.updateKudos)
 
 	def applyLoadedSettings(self, settings):
-		self.denoise_strength.setValue(settings["denoise_strength"])
+		self.denoise_strength.setValue(int(settings["denoise_strength"]*100))
 		self.seed.setText(settings["seed"])
 		self.steps.setValue(settings["steps"])
 		self.prompt.setText(settings["prompt"])

@@ -77,6 +77,7 @@ class Dialog(QWidget):
 		self.nsfw: QCheckBox = self.advanced['nsfw']
 		self.karras: QCheckBox = self.advanced['karras']
 		self.useRealInpaint: QCheckBox = self.advanced['useRealInpaint']
+		self.shareWithLAION: QCheckBox = self.advanced['shareWithLAION']
 
 		### User ###
 		self.apikey: QLineEdit = self.user['apikey']
@@ -105,6 +106,7 @@ class Dialog(QWidget):
 		self.steps.valueChanged.connect(self.updateKudos)
 		self.postProcessing.currentTextChanged.connect(self.updateKudos)
 		self.upscale.currentTextChanged.connect(self.updateKudos)
+		self.shareWithLAION.stateChanged.connect(self.updateKudos)
 
 	def applyLoadedSettings(self, settings):
 		self.denoise_strength.setValue(settings["denoise_strength"])
@@ -118,6 +120,7 @@ class Dialog(QWidget):
 		self.nsfw.setChecked(settings["nsfw"])
 		self.karras.setChecked(settings["karras"])
 		self.apikey.setText(settings["apikey"])
+		self.shareWithLAION.setChecked(settings["shared"])
 
 	def generate(self, img2img = False, inpainting = False):
 		qDebug("Generating image from dialog call...")
@@ -248,7 +251,7 @@ class Dialog(QWidget):
 			"trusted_workers": False,
 			"slow_workers": True,
 			"censor_nsfw": False,
-			"shared": False,
+			"shared": self.shareWithLAION.isChecked(),
 			"replacement_filter": True,
 			#Format for API generation request
 			"payloadData": payloadData
@@ -282,7 +285,7 @@ class Dialog(QWidget):
 			"censor_nsfw": False,
 			"r2": True,
 			"models": [self.model.currentData()],
-			"shared": False,
+			"shared": self.shareWithLAION.isChecked(),
 			"replacement_filter": True
 		}
 
@@ -315,11 +318,11 @@ class Dialog(QWidget):
 
 		kt = kudos.calculateKudos(width, height, self.steps.value(), self.sampler.currentText(),
 			   False, False, denoise, post,
-			   False, prompt, False)
+			   False, prompt, self.shareWithLAION.isChecked())
 
 		ki = kudos.calculateKudos(width, height, self.steps.value(), self.sampler.currentText(),
 			   True, True, self.denoise_strength.value()/100, post,
-			   False, self.prompt.toPlainText(), False)
+			   False, self.prompt.toPlainText(), self.shareWithLAION.isChecked())
 		
 		txtKudos = round(kt*self.numImages.value(),2)
 		imgKudos = round(ki*self.numImages.value(),2)

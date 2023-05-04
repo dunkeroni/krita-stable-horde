@@ -31,6 +31,7 @@ def readSettings():
       "maxWait": 5,
       "karras": True,
       "clip_skip": 1,
+      "shared": False,
    }
 
    try:
@@ -40,15 +41,11 @@ def readSettings():
          settings = defaults
       else:
          settings = json.loads(settings)
-         missing = False
 
       for key in defaults:
          if not key in settings:
-            missing = True
+            settings[key] = defaults[key]
             break
-
-      if missing is True:
-         settings = defaults
    except Exception as ex:
       settings = defaults
 
@@ -67,6 +64,7 @@ def writeSettings(dialogSettings: dict):
       "maxWait": dialogSettings["maxWait"],
       "karras": dialogSettings["karras"],
       "clip_skip": dialogSettings["clip_skip"],
+      "shared": dialogSettings["shared"],
    }
    qDebug("Settings saved to file")
    try:

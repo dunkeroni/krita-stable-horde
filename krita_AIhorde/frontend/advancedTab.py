@@ -77,6 +77,11 @@ def buildAdvancedTab(advanced, dialog):
     layout.addRow("Use Real Inpaint", useRealInpaint)
     advanced['useRealInpaint'] = useRealInpaint
 
+    # Share with LAION
+    shareWithLAION = QCheckBox()
+    shareWithLAION.setChecked(False)
+    layout.addRow("Share with LAION", shareWithLAION)
+    advanced['shareWithLAION'] = shareWithLAION
 
     tabAdvanced.setLayout(layout)
     return tabAdvanced

@@ -2,18 +2,16 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
-from ..frontend import UIactions
-
-def addAdvancedTab(tabs: QTabWidget, actor: UIactions.UIActor, dialog):
+def addAdvancedTab(tabs: QTabWidget, dialog):
     qDebug("Creating Advanced tab elements")
     advanced = {} #pointer to dictionary
-    advancedTab = buildAdvancedTab(actor, advanced, dialog)
+    advancedTab = buildAdvancedTab(advanced, dialog)
     tabs.addTab(advancedTab, "Advanced")
 
     return advanced #dictionary of tab elements
 
 
-def buildAdvancedTab(actor: UIactions.UIActor, advanced, dialog):
+def buildAdvancedTab(advanced, dialog):
     # ==============Advanced Tab================
     tabAdvanced = QWidget()
     layout = QFormLayout()

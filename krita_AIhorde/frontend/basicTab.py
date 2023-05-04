@@ -4,17 +4,16 @@ from PyQt5.QtGui import *
 
 from ..misc import range_slider
 from ..core import hordeAPI
-from ..frontend import UIactions
 
-def addBasicTab(tabs: QTabWidget, actor: UIactions.UIActor, dialog):
+def addBasicTab(tabs: QTabWidget, dialog):
     qDebug("Creating Basic tab elements")
     basic = {} #pointer to dictionary
-    basicTab = buildBasicTab(actor, basic, dialog)
+    basicTab = buildBasicTab(basic, dialog)
     tabs.addTab(basicTab, "Basic")
 
     return basic #dictionary of tab elements
 
-def buildBasicTab(actor: UIactions.UIActor, basic, dialog):
+def buildBasicTab(basic, dialog):
     # ================ Basic Tab ================
 		tabBasic = QWidget()
 		layout = QFormLayout()

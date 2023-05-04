@@ -2,18 +2,16 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
-from ..frontend import UIactions
-
-def addUserTab(tabs: QTabWidget, actor: UIactions.UIActor):
+def addUserTab(tabs: QTabWidget):
     qDebug("Creating User tab elements")
     user = {} #pointer to dictionary
-    advancedTab = buildUserTab(actor, user)
+    advancedTab = buildUserTab(user)
     tabs.addTab(advancedTab, "User")
 
     return user #dictionary of tab elements
 
 
-def buildUserTab(actor: UIactions.UIActor, user):
+def buildUserTab(user):
     tabUser = QWidget()
     layout = QFormLayout()
 

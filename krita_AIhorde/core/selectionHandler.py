@@ -1,5 +1,6 @@
 from krita import * #fake import for IDE
 from PyQt5.QtCore import qDebug
+import math
 
 import base64
 from ..misc import utility
@@ -12,13 +13,13 @@ def limitBounds(w, h, minSize, maxSize):
         scaleFactor = minSize / (min(w, h))
         if w < h: #expand by width, increase height to next 64 multiple
             gw = minSize
-            gh = 64 * ((h * scaleFactor) // 64 + 1)
+            gh = 64 * math.ceil((h * scaleFactor) / 64)
             h1 = gh // scaleFactor
             w1 = w
             qDebug("Selection too small, expanding")
         else: #expand by height, increase width to next 64 multiple
             gh = minSize
-            gw = 64 * ((w * scaleFactor) // 64 + 1)
+            gw = 64 * math.ceil((w * scaleFactor) / 64)
             w1= gw // scaleFactor
             h1 = h
             qDebug("Selection too small, expanding")
@@ -26,13 +27,13 @@ def limitBounds(w, h, minSize, maxSize):
         scaleFactor = maxSize / (max(w, h))
         if w > h: #shrink by width, increase height to next 64 multiple
             gw = maxSize
-            gh = 64 * ((h * scaleFactor) // 64 + 1)
+            gh = 64 * math.ceil((h * scaleFactor) / 64)
             h1 = gh // scaleFactor
             w1 = w
             qDebug("Selection too large, shrinking")
         else: #shrink by height, increase width to next 64 multiple
             gh = maxSize
-            gw = 64 * ((w * scaleFactor) // 64 + 1)
+            gw = 64 * math.ceil((w * scaleFactor) / 64)
             w1 = gw // scaleFactor
             h1 = h
             qDebug("Selection too large, shrinking")

@@ -10,7 +10,7 @@ I could do some shenanigans to include the requests library in the plugin folder
 Can also generate from swagger codegen for python, but it's huge and not really better than this for our purposes.
 """
 
-API_ROOT = "https://aihorde.net/api/v2/"
+API_ROOT = "https://stablehorde.net/api/v2/"
 CHECK_WAIT = 5
 CLIENT_AGENT = "dunkeroni's crappy Krita plugin"
 
@@ -40,7 +40,7 @@ def status_models(sort = True):
         if sort:
             models = sorted(models, key=lambda k: k['count'], reverse=True)
     except urllib.error.URLError as e:
-        utility.errorMessage("status_models url error", str(e.reason) + "\n Check your internet connection and try again.")
+        utility.errorMessage("status_models url error", str(e.reason) + "\n Check your internet connection and try again.\nThis is the first connection check that happens when you open the plugin, so it could be that the horde API is down.")
         models = []
     except:
         utility.errorMessage("Error", "Something went wrong while trying to get a list of models.")

@@ -3,7 +3,6 @@ from PyQt5.QtCore import *
 
 import json
 import urllib, urllib.request
-from ..frontend import widget
 
 VERSION = 200
 INPAINT_MASK_NAME = "Inpaint Mask"
@@ -55,19 +54,19 @@ def readSettings():
 
    return settings
 
-def writeSettings(dialog: widget.Dialog):
+def writeSettings(dialogSettings: dict):
    settings = {
-      "denoise_strength": dialog.denoise_strength.value(),
-      "prompt": dialog.prompt.toPlainText(),
-      "negativePrompt": dialog.negativePrompt.toPlainText(),
-      "promptStrength": dialog.CFG.value(),
-      "steps": int(dialog.steps.value()),
-      "seed": dialog.seed.text(),
-      "nsfw": dialog.nsfw.checkState(),
-      "apikey": dialog.apikey.text(),
-      "maxWait": dialog.maxWait.value(),
-      "karras": dialog.karras.checkState(),
-      "clip_skip": dialog.clip_skip.value(),
+      "denoise_strength": dialogSettings["denoise_strength"],
+      "prompt": dialogSettings["prompt"],
+      "negativePrompt": dialogSettings["negativePrompt"],
+      "promptStrength": dialogSettings["CFG"],
+      "steps": dialogSettings["steps"],
+      "seed": dialogSettings["seed"],
+      "nsfw": dialogSettings["nsfw"],
+      "apikey": dialogSettings["apikey"],
+      "maxWait": dialogSettings["maxWait"],
+      "karras": dialogSettings["karras"],
+      "clip_skip": dialogSettings["clip_skip"],
    }
    qDebug("Settings saved to file")
    try:

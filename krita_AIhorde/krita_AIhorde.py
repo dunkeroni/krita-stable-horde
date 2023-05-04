@@ -19,5 +19,5 @@ class AIhorde(DockWidget):
    def createActions(self, window):
       pass
 
-Krita.instance().addDockWidgetFactory(Krita.DockWidgetFactory("AIhorde", DockWidgetFactoryBase.DockLeft, AIhorde))
+Krita.instance().addDockWidgetFactory(DockWidgetFactory("AIhorde", DockWidgetFactoryBase.DockLeft, AIhorde))
 

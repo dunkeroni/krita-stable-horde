@@ -6,7 +6,7 @@ import math
 
 from ..misc import utility, range_slider, kudos
 from ..core import hordeAPI, horde
-from ..frontend import UIactions, basicTab, advancedTab, userTab
+from ..frontend import basicTab, advancedTab, userTab
 
 class Dialog(QWidget):
 	def __init__(self):
@@ -17,13 +17,14 @@ class Dialog(QWidget):
 		self.setWindowTitle("AI Horde")
 		self.layout = QVBoxLayout()
 
-		self.actor = UIactions.UIActor(self)
+		#self.actor = UIactions.UIActor(self)
+		self.worker = horde.Worker(self) #needs dialog reference for threaded event messages
 		
 		# Create tabs
 		tabs = QTabWidget()
-		self.basic = basicTab.addBasicTab(tabs, self.actor, self)
-		self.advanced = advancedTab.addAdvancedTab(tabs, self.actor, self)
-		self.user = userTab.addUserTab(tabs, self.actor)
+		self.basic = basicTab.addBasicTab(tabs, self)
+		self.advanced = advancedTab.addAdvancedTab(tabs, self)
+		self.user = userTab.addUserTab(tabs) #doesn't need self because no sliders in user tab
 		self.layout.addWidget(tabs)
 
 		self.setLayout(self.layout)
@@ -35,6 +36,7 @@ class Dialog(QWidget):
 		
 		self.connectFunctions()
 		#self.updateKudos()
+		self.refreshUser()
 
 		if utility.checkWebpSupport() is False:
 			self.generateButton.setEnabled(False)
@@ -117,11 +119,35 @@ class Dialog(QWidget):
 		self.karras.setChecked(settings["karras"])
 		self.apikey.setText(settings["apikey"])
 
-	def generate(self):
-		self.actor.generate(False, False)
+	def generate(self, img2img = False, inpainting = False):
+		qDebug("Generating image from dialog call...")
+		doc = utility.document()
+
+		# no document
+		if doc is None:
+			utility.errorMessage("Please open a document. Please check details.", "For image generation a document with color model 'RGB/Alpha', color depth '8-bit integer' and a paint layer is needed.")
+			return
+		# document has invalid color model or depth
+		elif doc.colorModel() != "RGBA" or doc.colorDepth() != "U8":
+			utility.errorMessage("Invalid document properties. Please check details.", "For image generation a document with color model 'RGB/Alpha', color depth '8-bit integer' is needed.")
+			return
+		# no prompt
+		elif len(self.prompt.toPlainText()) == 0:
+			utility.errorMessage("Please enter a prompt.", "")
+			return
+		else:
+			utility.writeSettings(self.getCurrentSettings())
+			self.setEnabledStatus(False)
+			self.refreshUser() #doesn't work later in threaded instances, so might as well do it early
+			self.statusDisplay.setText("Waiting for generated image...")
+			self.worker.generate(self.getCurrentSettings(), img2img, inpainting)
 	
 	def img2imgGenerate(self):
-		self.actor.img2imgGenerate(True, self.maskMode)
+		if utility.document().selection() is None:
+			utility.errorMessage("Make a selection.", "Please select a region of the document before enaging Img2Img mode.")
+			return
+		self.generate(True, self.maskMode)
+		self.toggleMaskMode(True)
 
 	def toggleMaskMode(self, forceDisable = False):
 		doc = utility.document()
@@ -159,7 +185,7 @@ class Dialog(QWidget):
 				
 	#override
 	def reject(self):
-		self.actor.worker.cancel()
+		self.worker.cancel()
 		utility.writeSettings(self)
 
 	def setEnabledStatus(self, status):
@@ -188,13 +214,7 @@ class Dialog(QWidget):
 		self.priceCheck.setEnabled(status)
 
 	def getCurrentSettings(self):
-		prompt = self.prompt.toPlainText() + (" ### " + self.negativePrompt.toPlainText() if self.negativePrompt.toPlainText() != "" else "")
-		
-		#post processing = [] if 'None' otherwise get value
-		post_processor = [self.postProcessing.currentText()] if self.postProcessing.currentText() != "None" else []
-		upscaler = [self.upscale.currentText()] if self.upscale.currentText() != "None" else []
-		post_process = post_processor + upscaler
-		
+		payloadData = self.getPayloadData()
 		return {
 			#basics
 			"denoise_strength": self.denoise_strength.value()/100,
@@ -206,8 +226,10 @@ class Dialog(QWidget):
 			"numImages": self.numImages.value(),
 			"steps": self.steps.value(),
 			"highResFix": self.highResFix.isChecked(),
-			"prompt": prompt,
-			"postProcessing": post_process,
+			"prompt": self.prompt.toPlainText(),
+			"negativePrompt": self.negativePrompt.toPlainText(),
+			"postProcessing": self.postProcessing.currentText(),
+			"upscale": self.upscale.currentText(),
 			"facefixer_strength": self.facefixer_strength.value()/100,
 			#advanced
 			"CFG": self.CFG.value(),
@@ -227,7 +249,9 @@ class Dialog(QWidget):
 			"slow_workers": True,
 			"censor_nsfw": False,
 			"shared": False,
-			"replacement_filter": True
+			"replacement_filter": True,
+			#Format for API generation request
+			"payloadData": payloadData
 		}
 	
 	def getPayloadData(self):
@@ -265,15 +289,46 @@ class Dialog(QWidget):
 		return data
 	
 	def updateKudos(self):
-		if utility.document() is None:
+		doc = utility.document()
+		if doc is None:
 			return
-		settings = self.getCurrentSettings()
-		k = self.actor.calculateKudos(settings)
-		self.generateButton.setText("Generate (" + str(k[0]) + " kudos)")
+		selection = doc.selection()
+		minSize = self.SizeRange.low()*64
+		maxSize = self.SizeRange.high()*64
+		if selection is None:
+			width = height = minSize
+		else: #stimate gen size
+			w = selection.width()
+			h = selection.height()
+			if max(w, h) > maxSize:
+				r = maxSize/min(w, h)
+			elif min(w, h) < minSize:
+				r = minSize/max(w, h)
+			else:
+				r = 1
+			width = math.ceil(w*r/64)*64
+			height = math.ceil(h*r/64)*64
+		
+		post = [self.postProcessing.currentText(), self.upscale.currentText()]
+		denoise = self.denoise_strength.value()/100
+		prompt = self.prompt.toPlainText() + " ### " + self.negativePrompt.toPlainText()
+
+		kt = kudos.calculateKudos(width, height, self.steps.value(), self.sampler.currentText(),
+			   False, False, denoise, post,
+			   False, prompt, False)
+
+		ki = kudos.calculateKudos(width, height, self.steps.value(), self.sampler.currentText(),
+			   True, True, self.denoise_strength.value()/100, post,
+			   False, self.prompt.toPlainText(), False)
+		
+		txtKudos = round(kt*self.numImages.value(),2)
+		imgKudos = round(ki*self.numImages.value(),2)
+
+		self.generateButton.setText("Generate (" + str(txtKudos) + " kudos)")
 		if self.maskMode:
-			self.img2imgButton.setText("Inpaint (" + str(k[1]) + " kudos)")
+			self.img2imgButton.setText("Inpaint (" + str(imgKudos) + " kudos)")
 		else:
-			self.img2imgButton.setText("Img2Img (" + str(k[1]) + " kudos)")
+			self.img2imgButton.setText("Img2Img (" + str(imgKudos) + " kudos)")
 
 	def refreshUser(self):
 		qDebug("Updating user info")
@@ -290,7 +345,7 @@ class Dialog(QWidget):
 	
 		#override
 	def customEvent(self, ev):
-		if ev.type() == self.actor.worker.eventId:
+		if ev.type() == self.worker.eventId:
 			if ev.updateType == utility.UpdateEvent.TYPE_CHECKED:
 				self.statusDisplay.setText(ev.message)
 			elif ev.updateType == utility.UpdateEvent.TYPE_INFO:

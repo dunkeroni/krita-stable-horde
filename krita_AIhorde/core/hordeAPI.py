@@ -10,12 +10,55 @@ I could do some shenanigans to include the requests library in the plugin folder
 Can also generate from swagger codegen for python, but it's huge and not really better than this for our purposes.
 """
 
-API_ROOT = "https://stablehorde.net/api/v2/"
+API_ROOT = "https://aihorde.net/api/v2/"
+BACKUP_ROOT = "https://stablehorde.net/api/v2/"
+root = API_ROOT
+try:
+    response = urllib.request.urlopen(urllib.request.Request(url=root + "status/heartbeat", headers={'User-Agent': 'Mozilla/5.0'}))
+except:
+    utility.errorMessage("Possible API Error", "Could not connect to AIhorde API. Attempting fallback API address.")
+    root = BACKUP_ROOT
+
 CHECK_WAIT = 5
 CLIENT_AGENT = "dunkeroni's crappy Krita plugin"
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
+
+def standardConnection(req: urllib.request.Request):
+    req.add_header('User-Agent', 'Mozilla/5.0') #pretend to be a browser so the API doesn't return forbidden
+    req.add_header('Client-Agent', CLIENT_AGENT)
+    try:
+        response = urllib.request.urlopen(req)
+    except urllib.error.URLError as e:
+        utility.errorMessage("status_models url error", str(e.reason) + "\n Check your internet connection and try again.")
+        response = None
+
+    return json.loads(response.read())
+
+
+def connectWithRedirects(req: urllib.request.Request, maxRedirects = 5):
+    """Connects to the given url and follows redirects up to maxRedirects times.
+    Returns the response if successful, None if not."""
+    try:
+        response = urllib.request.urlopen(req)
+        return response
+    except urllib.error.URLError as e:
+        utility.errorMessage("HTTP Error", "Error code: " + str(e.code) + "\n" + e.reason + "\n attempting again\n" + req.get_full_url() + " \n Remainting attempts: " + str(maxRedirects))
+        if (e.code >= 301 and e.code <= 399) and maxRedirects > 0:
+            #append response redirect to request url
+            newurl = urllib.parse.urljoin(req.get_full_url(), e.headers['Location'])
+            request = urllib.request.Request(url=newurl, data=req.data, headers=req.headers)
+            return connectWithRedirects(request, maxRedirects - 1)
+        else:
+            utility.errorMessage("HTTP Error", "Error code: " + str(e.code) + "\n" + e.reason)
+            return None
+    except urllib.error.HTTPError as e:
+        utility.errorMessage("URL Error", str(e.reason) + "\n Check your internet connection and try again.")
+        return None
+    except:
+        utility.errorMessage("Error", "Something went wrong while trying to connect to the horde API.")
+        return None
 
 def status_models(sort = True):
     #get models from stablehorde
@@ -32,19 +75,15 @@ def status_models(sort = True):
         }
     ]"""
     
-    try:
-        response = urllib.request.urlopen(API_ROOT + "status/models")
-        models = json.loads(response.read())
+    request = urllib.request.Request(root + "status/models")
+    models = standardConnection(request)
+    if models is None:
+        return []
 
-        #sort models based on Count
-        if sort:
-            models = sorted(models, key=lambda k: k['count'], reverse=True)
-    except urllib.error.URLError as e:
-        utility.errorMessage("status_models url error", str(e.reason) + "\n Check your internet connection and try again.\nThis is the first connection check that happens when you open the plugin, so it could be that the horde API is down.")
-        models = []
-    except:
-        utility.errorMessage("Error", "Something went wrong while trying to get a list of models.")
-        models = []
+    #sort models based on Count
+    if sort:
+        models = sorted(models, key=lambda k: k['count'], reverse=True)
+    
     return models
 
 
@@ -113,20 +152,13 @@ def find_user(apikey = "0000000000"):
     }
     """
     
-    url = API_ROOT + "find_user"
-    headers = {"Content-Type": "application/json", "Accept": "application/json", "apikey": apikey, "Client-Agent": CLIENT_AGENT}
-    try:
-        request = urllib.request.Request(url=url, headers=headers)
-        response = urllib.request.urlopen(request)
-        data = response.read()
-        userInfo = json.loads(data)
-    except urllib.error.URLError as e:
-        utility.errorMessage("find_user url error", str(e.reason))
-        userInfo = {}
-    except:
-        utility.errorMessage("Error", "Something went wrong while trying to get user info.")
-        userInfo = {}
-
+    url = root + "find_user"
+    headers = {"Content-Type": "application/json", "Accept": "application/json", "apikey": apikey}
+    request = urllib.request.Request(url=url, headers=headers)
+    userInfo = standardConnection(request)
+    if userInfo is None:
+        return {}
+    
     return userInfo
 
 
@@ -146,19 +178,14 @@ def generate_async(data, apikey = "0000000000"):
     """
 
     data = json.dumps(data).encode("utf-8") #format for sending request
-    url = API_ROOT + "generate/async"
+    url = root + "generate/async"
     headers = {"Content-Type": "application/json", "Accept": "application/json", "apikey": apikey, "Client-Agent": CLIENT_AGENT}
-    try:
-        request = urllib.request.Request(url=url, data=data, headers=headers)
-        response = urllib.request.urlopen(request)
-        status = response.read()
-        jobInfo = json.loads(status)
-    except urllib.error.URLError as e:
-        utility.errorMessage("generate_async url error", str(e.reason))
-        jobInfo = {}
-    except:
-        utility.errorMessage("Error", "Something went wrong while trying to request an image.")
-        jobInfo = {}
+
+    request = urllib.request.Request(url=url, data=data, headers=headers)
+    jobInfo = standardConnection(request)
+
+    if jobInfo is None:
+        return {}
 
     return jobInfo
     
@@ -184,20 +211,13 @@ def generate_check(id):
     "message": "string"
     }
     """
-    
-    try:
-        response = urllib.request.urlopen(url = API_ROOT + "generate/check/" + id)
-        status = response.read()
-        jobInfo = json.loads(status)
-    except urllib.error.URLError as e:
-        utility.errorMessage("generate_check url error", str(e.reason))
-        jobInfo = {}
-    except:
-        utility.errorMessage("Error", "Something went wrong while trying to check the status of an image.")
-        jobInfo = {}
+ 
+    request = urllib.request.Request(url = root + "generate/check/" + id)
+    jobInfo = standardConnection(request)
+    if jobInfo is None:
+        return {}
     
     return jobInfo
-
 
 def generate_status(id):
     #get status of job including finished images
@@ -235,16 +255,10 @@ def generate_status(id):
     }
     """
     
-    try:
-        response = urllib.request.urlopen(API_ROOT + "generate/status/" + id)
-        status = response.read()
-        jobInfo = json.loads(status)
-    except urllib.error.URLError as e:
-        utility.errorMessage("generate_status url error", str(e.reason))
-        jobInfo = {}
-    except:
-        utility.errorMessage("Error", "Something went wrong while trying to get the status of an image.")
-        jobInfo = {}
-
+    request = urllib.request.Request(url = root + "generate/status/" + id)
+    jobInfo = standardConnection(request)
+    if jobInfo is None:
+        return {}
+    
     return jobInfo
 

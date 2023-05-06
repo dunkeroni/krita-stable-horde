@@ -101,11 +101,13 @@ class Worker():
         if img2img:
             if inpainting:
                 self.initMask = selectionHandler.getImg2ImgMask() #saved for later displaying
-            init = selectionHandler.getEncodedImageFromBounds(self.bounds, False)#inpainting) inpainting removed for img2img workaround
+            init, mask = selectionHandler.getEncodedImageFromBounds(self.bounds, inpainting)#inpainting) inpainting removed for img2img workaround
             data.update({"source_image": init})
             data.update({"source_processing": "img2img"})
             params.update({"hires_fix": False})
             params.update({"denoising_strength": settings["denoise_strength"]})
+            if inpainting:
+                data.update({"source_mask": mask})
         #if inpainting: #implies img2img
             #data.update({"source_processing": "inpainting"})
 

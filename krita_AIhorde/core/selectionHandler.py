@@ -102,6 +102,7 @@ def getEncodedImageFromBounds(bounds, inpainting = False):
     [gw, gh] = bounds[2]
     qDebug("Values[ x: %d, y: %d, w: %d, h: %d ]" % (x, y, w, h))
     doc = utility.document()
+    mask = mdata = None
 
     if inpainting:
         qDebug("Inpainting, using selection bounds")
@@ -120,7 +121,7 @@ def getEncodedImageFromBounds(bounds, inpainting = False):
     image = QImage(bytes.data(), w, h, QImage.Format_RGBA8888).rgbSwapped()
     if inpainting:
         mask.invertPixels(QImage.InvertRgba)
-        image.setAlphaChannel(mask.convertToFormat(QImage.Format_Alpha8))
+        #image.setAlphaChannel(mask.convertToFormat(QImage.Format_Alpha8))
         qDebug("Set alpha channel to mask layer")
     image = image.scaled(gw, gh, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
     qDebug("Upscaled image to %dx%d" % (gw, gh))
@@ -129,7 +130,13 @@ def getEncodedImageFromBounds(bounds, inpainting = False):
     image.save(buffer, "WEBP")
     data = base64.b64encode(bytes.data())
     data = data.decode("ascii")
-    return data
+
+    mbytes = QByteArray()
+    mbuffer = QBuffer(mbytes)
+    mask.save(mbuffer, "WEBP")
+    mdata = base64.b64encode(mbytes.data())
+    mdata = mdata.decode("ascii")
+    return data, mdata
 
 def getImg2ImgMask():
     qDebug("getImg2ImgMask")
@@ -141,7 +148,7 @@ def getImg2ImgMask():
     else:
         qDebug("Mask layer found. Will apply to result.")
         mask = maskNode.duplicate() #skip the rest of this nonsense
-        utility.deleteMaskNode()
+        #utility.deleteMaskNode() ################################################REPLACE ME LATER
         return mask #skip the rest of this nonsense
 
 def putImageIntoBounds(bytes, bounds, nametag="new generation", mask = None):

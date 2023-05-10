@@ -73,3 +73,7 @@ Add Control Net
 ### Known bugs that I can't be bothered to solve just yet:
 Crashes if internet connection is lost while requesting.  
 Errors on first load when API key is blank.  
+Inpainting with some samplers (DDIM) causes a faulty request which errors on check.  
+    This is a horde issue, not a plugin issue.  
+    Workaround: use a different sampler.  
+    Fix: Will add some restrictions to samplers in the future.

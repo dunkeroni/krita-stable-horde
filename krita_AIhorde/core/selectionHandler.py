@@ -95,7 +95,7 @@ def getI2Ibounds(minSize=512, maxSize = 1536):
     return bounds
 
 
-def getEncodedImageFromBounds(bounds, inpainting = False):
+def getEncodedImageFromBounds(bounds, inpainting = False, inpaintMode = 0):
     #Returns a scaled base64 encoded image for sending to the horde server
     qDebug("getEncodedImageFromBounds")
     [x, y, w, h] = bounds[1] #bounds[1] is the adjusted selection bounds
@@ -119,7 +119,7 @@ def getEncodedImageFromBounds(bounds, inpainting = False):
 
     bytes = doc.pixelData(x, y, w, h)
     image = QImage(bytes.data(), w, h, QImage.Format_RGBA8888).rgbSwapped()
-    if inpainting:
+    if inpainting and inpaintMode != 3: #actual inpainting has a reversed mask from the other modes
         mask.invertPixels(QImage.InvertRgba)
         #image.setAlphaChannel(mask.convertToFormat(QImage.Format_Alpha8))
         qDebug("Set alpha channel to mask layer")

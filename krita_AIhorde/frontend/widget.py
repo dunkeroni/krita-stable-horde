@@ -6,7 +6,7 @@ import math
 
 from ..misc import utility, range_slider, kudos
 from ..core import hordeAPI, horde
-from ..frontend import basicTab, advancedTab, userTab
+from ..frontend import basicTab, advancedTab, userTab, experimentTab
 
 class Dialog(QWidget):
 	def __init__(self):
@@ -25,6 +25,7 @@ class Dialog(QWidget):
 		self.basic = basicTab.addBasicTab(tabs, self)
 		self.advanced = advancedTab.addAdvancedTab(tabs, self)
 		self.user = userTab.addUserTab(tabs) #doesn't need self because no sliders in user tab
+		self.experiment = experimentTab.addExperimentTab(tabs, self)
 		self.layout.addWidget(tabs)
 
 		self.setLayout(self.layout)
@@ -87,6 +88,10 @@ class Dialog(QWidget):
 		self.requests: QLineEdit = self.user['requests']
 		self.contributions: QLineEdit = self.user['contributions']
 		self.refreshUserButton: QPushButton = self.user['refreshUserButton']
+
+		### EXPERIMENTAL ###
+		#Temporary settings that add extra functionality for testing: 0 = Img2Img PostMask, 1 = Img2Img PreMask, 2 = Img2Img DoubleMask, 3 = Inpaint Raw Mask
+		self.inpaintMode: QButtonGroup = self.experiment['inpaintMode']
 
 	def connectFunctions(self):
 		#User button connections
@@ -253,7 +258,9 @@ class Dialog(QWidget):
 			"shared": self.shareWithLAION.isChecked(),
 			"replacement_filter": True,
 			#Format for API generation request
-			"payloadData": payloadData
+			"payloadData": payloadData,
+			#Experimental
+			"inpaintMode": self.inpaintMode.checkedId()
 		}
 	
 	def getPayloadData(self):

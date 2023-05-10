@@ -99,17 +99,19 @@ class Worker():
         params.update({"height": gh})
 
         if img2img:
-            if inpainting:
+            if inpainting and (settings["inpaintMode"] == 0 or settings["inpaintMode"] == 2):
                 self.initMask = selectionHandler.getImg2ImgMask() #saved for later displaying
-            init, mask = selectionHandler.getEncodedImageFromBounds(self.bounds, inpainting)#inpainting) inpainting removed for img2img workaround
+            else:
+                self.initMask = None
+            init, mask = selectionHandler.getEncodedImageFromBounds(self.bounds, inpainting, settings['inpaintMode'])#inpainting) inpainting removed for img2img workaround
             data.update({"source_image": init})
             data.update({"source_processing": "img2img"})
             params.update({"hires_fix": False})
             params.update({"denoising_strength": settings["denoise_strength"]})
-            if inpainting:
+            if inpainting and settings["inpaintMode"] >= 1:
                 data.update({"source_mask": mask})
-        #if inpainting: #implies img2img
-            #data.update({"source_processing": "inpainting"})
+        if inpainting and settings["inpaintMode"] == 3: #implies img2img
+            data.update({"source_processing": "inpainting"})
 
         apikey = "0000000000" if settings["apikey"] == "" else settings["apikey"]
         #utility.errorMessage("generation info:", str(data))

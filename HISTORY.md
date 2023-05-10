@@ -1,6 +1,10 @@
 # History
 ## Krita Plugin 2.X
 
+### 2.0.2 - Hotfix
+- Updated API call backend to prevent connection issues with new aihorde.net domain and redirects
+- Added inpainting modes in Experimental tab of interface (bonus since this is what I was testing when I needed to apply the API fix)
+
 ### 2.0.1
 - more architecture fixes to allow for better feature expansion in the future
 - added Share With LAION database option

@@ -36,30 +36,6 @@ def standardConnection(req: urllib.request.Request):
 
     return json.loads(response.read())
 
-
-def connectWithRedirects(req: urllib.request.Request, maxRedirects = 5):
-    """Connects to the given url and follows redirects up to maxRedirects times.
-    Returns the response if successful, None if not."""
-    try:
-        response = urllib.request.urlopen(req)
-        return response
-    except urllib.error.URLError as e:
-        utility.errorMessage("HTTP Error", "Error code: " + str(e.code) + "\n" + e.reason + "\n attempting again\n" + req.get_full_url() + " \n Remainting attempts: " + str(maxRedirects))
-        if (e.code >= 301 and e.code <= 399) and maxRedirects > 0:
-            #append response redirect to request url
-            newurl = urllib.parse.urljoin(req.get_full_url(), e.headers['Location'])
-            request = urllib.request.Request(url=newurl, data=req.data, headers=req.headers)
-            return connectWithRedirects(request, maxRedirects - 1)
-        else:
-            utility.errorMessage("HTTP Error", "Error code: " + str(e.code) + "\n" + e.reason)
-            return None
-    except urllib.error.HTTPError as e:
-        utility.errorMessage("URL Error", str(e.reason) + "\n Check your internet connection and try again.")
-        return None
-    except:
-        utility.errorMessage("Error", "Something went wrong while trying to connect to the horde API.")
-        return None
-
 def status_models(sort = True):
     #get models from stablehorde
     #return list of models if successful, empty list if not

@@ -4,7 +4,6 @@ from PyQt5.QtCore import *
 import json
 import urllib, urllib.request
 
-VERSION = 201
 INPAINT_MASK_NAME = "Inpaint Mask"
 
 def errorMessage(text, detailed):
@@ -89,7 +88,7 @@ def checkUpdate():
       else:
          return {"update": False}
    except Exception as ex:
-      return {"update": False}
+      return {"update": False}-
 
 def checkWebpSupport():
    formats = QImageReader.supportedImageFormats()

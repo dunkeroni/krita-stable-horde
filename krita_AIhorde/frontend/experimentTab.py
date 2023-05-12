@@ -35,5 +35,9 @@ def buildAdvancedTab(experiment, dialog):
     layout.addRow("Inpaint Mode", layoutV)
     experiment['inpaintMode'] = inpaintMode
 
+    #checkUpdates button
+    checkUpdates = QPushButton("Check for Updates")
+    checkUpdates.clicked.connect(utility.checkUpdate())
+
     tabExperiment.setLayout(layout)
     return tabExperiment

@@ -75,12 +75,16 @@ def writeSettings(dialogSettings: dict):
 
 def checkUpdate():
    try:
-      url = "https://raw.githubusercontent.com/dunkeroni/krita-stable-horde/main/version.json"
+      url = "https://raw.githubusercontent.com/dunkeroni/krita-stable-horde/main/krita_AIhorde/misc/version.json"
       response = urllib.request.urlopen(url)
       data = response.read()
       data = json.loads(data)
 
-      if VERSION < int(data["version"]):
+      with open("version.json", "r") as localversion:
+         lver = json.loads(localversion.read())
+      qDebug("Local version: " + str(lver["version"]) + ", Remote version: " + str(data["version"]))
+
+      if int(lver["version"]) < int(data["version"]):
          return {"update": True, "message": data["message"]}
       else:
          return {"update": False}

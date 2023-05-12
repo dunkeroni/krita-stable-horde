@@ -37,7 +37,8 @@ def buildAdvancedTab(experiment, dialog):
 
     #checkUpdates button
     checkUpdates = QPushButton("Check for Updates")
-    checkUpdates.clicked.connect(utility.checkUpdate())
+    checkUpdates.clicked.connect(utility.checkUpdate)
+    layout.addRow(checkUpdates)
 
     tabExperiment.setLayout(layout)
     return tabExperiment

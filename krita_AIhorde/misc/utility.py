@@ -3,6 +3,7 @@ from PyQt5.QtCore import *
 
 import json
 import urllib, urllib.request
+from ..misc import version
 
 INPAINT_MASK_NAME = "Inpaint Mask"
 
@@ -74,21 +75,19 @@ def writeSettings(dialogSettings: dict):
 
 def checkUpdate():
    try:
-      url = "https://raw.githubusercontent.com/dunkeroni/krita-stable-horde/main/krita_AIhorde/misc/version.json"
+      url = "https://raw.githubusercontent.com/dunkeroni/krita-stable-horde/main/krita_AIhorde/misc/version.py"
       response = urllib.request.urlopen(url)
-      data = response.read()
-      data = json.loads(data)
-
-      with open("version.json", "r") as localversion:
-         lver = json.loads(localversion.read())
-      qDebug("Local version: " + str(lver["version"]) + ", Remote version: " + str(data["version"]))
-
-      if int(lver["version"]) < int(data["version"]):
-         return {"update": True, "message": data["message"]}
+      data: str = response.read()
+      remoteVersion = int(data.replace("VERSION = ", ""))
+      qDebug("Remote version: " + remoteVersion)
+      qDebug("Local version: " + version.VERSION)
+      if remoteVersion > version.VERSION:
+         return {"update": True, "message": "New version of the AI Horde plugin is available. Please update at: https://github.com/dunkeroni/krita-stable-horde"}
       else:
          return {"update": False}
    except Exception as ex:
-      return {"update": False}-
+      qDebug("Update check failed: " + str(ex))
+      return {"update": False}
 
 def checkWebpSupport():
    formats = QImageReader.supportedImageFormats()

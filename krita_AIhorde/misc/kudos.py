@@ -1,3 +1,7 @@
+"""DEPRECATED
+New system uses a neural network model on the server side to judge kudos requirement.
+The network estimates the actual compute time required for a job based on the parameters.
+The calculation can no longer be done locally from a python instance within Krita."""
 import math
 
 doesDenoiseStrengthAffectSteps = False #This is a server-side bug. Switch to true when fixed.

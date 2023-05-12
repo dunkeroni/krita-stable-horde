@@ -77,11 +77,12 @@ def checkUpdate():
    try:
       url = "https://raw.githubusercontent.com/dunkeroni/krita-stable-horde/main/krita_AIhorde/misc/version.py"
       response = urllib.request.urlopen(url)
-      data: str = response.read()
+      data: str = response.read().decode('utf-8')
       remoteVersion = int(data.replace("VERSION = ", ""))
-      qDebug("Remote version: " + remoteVersion)
-      qDebug("Local version: " + version.VERSION)
+      qDebug("Remote version: " + str(remoteVersion))
+      qDebug("Local version: " + str(version.VERSION))
       if remoteVersion > version.VERSION:
+         errorMessage("New version of the AI Horde plugin is available.", "Please update at: https://github.com/dunkeroni/krita-stable-horde")
          return {"update": True, "message": "New version of the AI Horde plugin is available. Please update at: https://github.com/dunkeroni/krita-stable-horde"}
       else:
          return {"update": False}

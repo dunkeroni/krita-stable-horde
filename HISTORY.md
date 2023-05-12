@@ -1,6 +1,9 @@
 # History
 ## Krita Plugin 2.X
 
+### 2.0.3
+- Changed how version updates are checked. Now the version is only held in version.py, all other points refer to that file on local and remote locations.
+
 ### 2.0.2 - Hotfix
 - Updated API call backend to prevent connection issues with new aihorde.net domain and redirects
 - Added inpainting modes in Experimental tab of interface (bonus since this is what I was testing when I needed to apply the API fix)

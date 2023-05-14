@@ -1,7 +1,7 @@
 from krita import *
 from PyQt5.QtCore import qDebug
 
-import time
+import threading
 from ..core import hordeAPI
 
 class StatusChecker(QObject):
@@ -52,5 +52,5 @@ class StatusChecker(QObject):
 		elif data["processing"] > 0:
 			self.message.emit("Generating...\nWaiting: " + str(data["waiting"]) + "\nProcessing: " + str(data["processing"]) + "\nFinished: " + str(data["finished"]))
 
-		time.sleep(self.CHECK_WAIT)
-		self.checkStatus()
+		timer = threading.Timer(self.CHECK_WAIT, self.checkStatus)
+		timer.start()

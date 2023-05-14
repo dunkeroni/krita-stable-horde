@@ -37,22 +37,7 @@ class Dialog(QWidget):
 		#self.updateKudos()
 		self.refreshUser()
 
-		#create workers and threads
-		#self.workerthread = QThread()
-		#self.rescol = resultCollector.ResultCollector(self.results)
 		self.worker = horde.Worker(self) #needs dialog reference for threaded event messages
-		#connect worker signals to result and GUI slots
-		#self.worker.statusUpdate.connect(self.updateStatus)
-		#self.worker.enableGUI.connect(self.setEnabledStatus)
-		#self.worker.newBufferEntry.connect(self.rescol.addBufferNode)
-		#self.worker.generateDone.connect(self.rescol.bufferToDB)
-		#self.worker.resultsReady.connect(self.rescol.displayGenerated)
-
-		#move into threads
-		#self.worker.moveToThread(self.workerthread)
-
-		#start threads
-		#self.workerthread.start()
 
 		if utility.checkWebpSupport() is False:
 			self.generateButton.setEnabled(False)

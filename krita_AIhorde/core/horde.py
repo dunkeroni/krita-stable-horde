@@ -109,18 +109,19 @@ class Worker(QObject): #QObject allows threaded running
 	def createStatusChecker(self):
 		#starts a threaded instance of an object that queries the status of the job
 		#object will connect to the DisplayGenerated function when the job is finished
-		self.thread = QThread()
+		#self.thread = QThread()
 		self.checker = StatusChecker(self.id, self.maxWait)
-		self.checker.moveToThread(self.thread)
-		self.thread.started.connect(self.checker.checkStatus)
+		#self.checker.moveToThread(self.thread)
+		#self.thread.started.connect(self.checker.checkStatus)
 		self.checker.message.connect(self.checkerMessage) #updates the status block
 		self.checker.done.connect(self.displayGenerated) #passes message result to display function
-		self.checker.finished.connect(self.thread.quit)
-		self.checker.finished.connect(self.checker.deleteLater)
-		self.thread.finished.connect(self.thread.deleteLater)
+		#self.checker.finished.connect(self.thread.quit)
+		#self.checker.finished.connect(self.checker.deleteLater)
+		#self.thread.finished.connect(self.thread.deleteLater)
 
 		qDebug("starting status checker thread...")
-		self.thread.start()
+		#self.thread.start()
+		self.checker.checkStatus()
 
 
 	def cancel(self, message="Generation canceled."):

@@ -5,8 +5,8 @@ from PyQt5.QtGui import *
 import math
 
 from ..misc import utility, range_slider, kudos
-from ..core import hordeAPI, horde
-from ..frontend import basicTab, advancedTab, userTab, experimentTab
+from ..core import hordeAPI, horde, resultCollector
+from ..frontend import basicTab, advancedTab, userTab, experimentTab, resultsTab
 
 class Dialog(QWidget):
 	def __init__(self):
@@ -16,9 +16,6 @@ class Dialog(QWidget):
 
 		self.setWindowTitle("AI Horde")
 		self.layout = QVBoxLayout()
-
-		#self.actor = UIactions.UIActor(self)
-		self.worker = horde.Worker(self) #needs dialog reference for threaded event messages
 		
 		# Create tabs
 		tabs = QTabWidget()
@@ -26,6 +23,7 @@ class Dialog(QWidget):
 		self.advanced = advancedTab.addAdvancedTab(tabs, self)
 		self.user = userTab.addUserTab(tabs) #doesn't need self because no sliders in user tab
 		self.experiment = experimentTab.addExperimentTab(tabs, self)
+		self.results = resultsTab.addResultsTab(tabs, self)
 		self.layout.addWidget(tabs)
 
 		self.setLayout(self.layout)
@@ -38,6 +36,23 @@ class Dialog(QWidget):
 		self.connectFunctions()
 		#self.updateKudos()
 		self.refreshUser()
+
+		#create workers and threads
+		#self.workerthread = QThread()
+		#self.rescol = resultCollector.ResultCollector(self.results)
+		self.worker = horde.Worker(self) #needs dialog reference for threaded event messages
+		#connect worker signals to result and GUI slots
+		#self.worker.statusUpdate.connect(self.updateStatus)
+		#self.worker.enableGUI.connect(self.setEnabledStatus)
+		#self.worker.newBufferEntry.connect(self.rescol.addBufferNode)
+		#self.worker.generateDone.connect(self.rescol.bufferToDB)
+		#self.worker.resultsReady.connect(self.rescol.displayGenerated)
+
+		#move into threads
+		#self.worker.moveToThread(self.workerthread)
+
+		#start threads
+		#self.workerthread.start()
 
 		if utility.checkWebpSupport() is False:
 			self.generateButton.setEnabled(False)
@@ -93,6 +108,14 @@ class Dialog(QWidget):
 		#Temporary settings that add extra functionality for testing: 0 = Img2Img PostMask, 1 = Img2Img PreMask, 2 = Img2Img DoubleMask, 3 = Inpaint Raw Mask
 		self.inpaintMode: QButtonGroup = self.experiment['inpaintMode']
 
+		### RESULTS ###
+		self.groupSelector: QComboBox = self.results['groupSelector']
+		self.nextResult: QPushButton = self.results['nextResult']
+		self.prevResult: QPushButton = self.results['prevResult']
+		self.deleteButton: QPushButton = self.results['deleteButton']
+		self.deleteAllButton: QPushButton = self.results['deleteAllButton']
+		self.genInfo: QTextEdit = self.results['genInfo']
+
 	def connectFunctions(self):
 		#User button connections
 		self.generateButton.clicked.connect(self.generate)
@@ -147,7 +170,12 @@ class Dialog(QWidget):
 			self.setEnabledStatus(False)
 			self.refreshUser() #doesn't work later in threaded instances, so might as well do it early
 			self.statusDisplay.setText("Waiting for generated image...")
-			self.worker.generate(self.getCurrentSettings(), img2img, inpainting)
+
+			settings = self.getCurrentSettings()
+			settings["genImg2img"] = img2img
+			settings["genInpainting"] = inpainting
+			self.worker.generate(settings) #trigger threaded generation task
+			#self.worker.triggerGenerate.emit(settings) #trigger threaded generation task
 	
 	def img2imgGenerate(self):
 		if utility.document().selection() is None:
@@ -367,3 +395,10 @@ class Dialog(QWidget):
 				#set status to none and activate the generate button again
 				#self.statusDisplay.setText("Done.")
 				self.setEnabledStatus(True)
+			elif ev.updateType == utility.UpdateEvent.TYPE_RESULTS:
+				self.rescol.setBuffer(ev.message)
+				self.rescol.bufferToDB()
+	
+	@pyqtSlot(str)
+	def updateStatus(self, status):
+		self.statusDisplay.setText(status)

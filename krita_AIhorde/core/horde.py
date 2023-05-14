@@ -2,131 +2,131 @@ from krita import *
 from PyQt5.QtCore import qDebug
 
 import base64
-import ssl
-import threading
-import urllib, urllib.request, urllib.error
 import re
 
 from ..misc import utility
-from ..core import hordeAPI, selectionHandler
+from ..core import hordeAPI, selectionHandler, resultCollector
+from ..core.statusChecker import StatusChecker
 
-class Worker():
-    CHECK_WAIT = 5
+class Worker(QObject): #QObject allows threaded running
+	#inbound signal
+	triggerGenerate = pyqtSignal(dict) #trigger the generate function
 
-    def __init__(self, dialog):
-        self.dialog = dialog
-        self.canceled = False
-        self.checkMax = None
-        self.checkCounter = 0
-        self.id = None
-        self.eventId = QEvent.registerEventType()
+	#outbound signals
+	enableGUI = pyqtSignal(bool) #enable/disable the main GUI
+	statusUpdate = pyqtSignal(str) #update the status block
+	generateDone = pyqtSignal() #return results node dictionary
+	newBufferEntry = pyqtSignal(Node, dict) #add a new node to the buffer
+	resultsReady = pyqtSignal(dict) #return results
 
-    ssl._create_default_https_context = ssl._create_unverified_context
+	CHECK_WAIT = 5
 
-    def displayGenerated(self, images):
-        for image in images:
-            seed = image["seed"]
+	def __init__(self, dialog):
+		super(Worker, self).__init__()
+		self.dialog = dialog
+		self.canceled = False
+		self.maxWait = 300
+		self.checkCounter = 0
+		self.id = None
+		self.eventId = QEvent.registerEventType()
+		self.triggerGenerate.connect(self.generate)
 
-            if re.match("^https.*", image["img"]):
-                response = urllib.request.urlopen(image["img"])
-                bytes = response.read()
-            else:
-                bytes = base64.b64decode(image["img"])
-                bytes = QByteArray(bytes)
+	@pyqtSlot(dict)
+	def displayGenerated(self, data):
+		doc = Krita.instance().activeDocument()
+		images = data["generations"]
+		for image in images:
+			seed = image["seed"]
 
-            #selectionHandler.putImageIntoBounds(bytes, self.bounds, seed)
-            selectionHandler.putImageIntoBounds(bytes, self.bounds, seed, self.initMask)
-        self.pushEvent(str(len(images)) + " images generated.")
-        utility.UpdateEvent(self.eventId, utility.UpdateEvent.TYPE_FINISHED)
+			if re.match("^https.*", image["img"]):
+				bytes = hordeAPI.pullImage(image)
+			else:
+				bytes = base64.b64decode(image["img"])
+				bytes = QByteArray(bytes)
 
-    def pushEvent(self, message, eventType = utility.UpdateEvent.TYPE_CHECKED):
-        #posts an event through a new UpdateEvent instance for the current multithreaded instance to provide status messages without crashing krita
-        ev = utility.UpdateEvent(self.eventId, eventType, message)
-        QApplication.postEvent(self.dialog, ev)
+			#selectionHandler.putImageIntoBounds(bytes, self.bounds, seed)
+			if bytes is None:
+				qDebug("ERROR: bytes is None")
+				return
+			selectionHandler.putImageIntoBounds(bytes, self.bounds, seed, self.initMask)
+			doc.waitForDone()
+			#get the active node
+			#node = doc.activeNode()
+			#qDebug("Adding node to buffer...")
+			#self.newBufferEntry.emit(node, {'seed': seed}) #add result node to the buffer
+			#qDebug("worker continuing...")
+		self.dialog.setEnabledStatus(True)
+
+	def pushEvent(self, message, eventType = utility.UpdateEvent.TYPE_CHECKED):
+		#posts an event through a new UpdateEvent instance for the current multithreaded instance to provide status messages without crashing krita
+		ev = utility.UpdateEvent(self.eventId, eventType, message)
+		QApplication.postEvent(self.dialog, ev)
+
+	def generate(self, settings: dict):
+		img2img = settings["genImg2img"]
+		inpainting = settings["genInpainting"]
+		self.cancelled = False
+		self.id = None
+		self.maxWait = (settings["maxWait"] * 60)
+		self.initMask = None
+		data: dict = settings["payloadData"]
+		params: dict = data["params"]
+
+		self.bounds = selectionHandler.getI2Ibounds(settings["minSize"], settings["maxSize"])
+		[gw, gh] = self.bounds[2] #generation bounds already sized correctly and fit to multiple of 64
+		params.update({"width": gw})
+		params.update({"height": gh})
+
+		if img2img:
+			if inpainting and (settings["inpaintMode"] == 0 or settings["inpaintMode"] == 2):
+				self.initMask = selectionHandler.getImg2ImgMask() #saved for later displaying
+			else:
+				self.initMask = None
+			init, mask = selectionHandler.getEncodedImageFromBounds(self.bounds, inpainting, settings['inpaintMode'])#inpainting) inpainting removed for img2img workaround
+			data.update({"source_image": init})
+			data.update({"source_processing": "img2img"})
+			params.update({"hires_fix": False})
+			params.update({"denoising_strength": settings["denoise_strength"]})
+			if inpainting and settings["inpaintMode"] >= 1:
+				data.update({"source_mask": mask})
+		if inpainting and settings["inpaintMode"] == 3: #implies img2img
+			data.update({"source_processing": "inpainting"})
+
+		apikey = "0000000000" if settings["apikey"] == "" else settings["apikey"]
+		#utility.errorMessage("generation info:", str(data))
+		jobInfo = hordeAPI.generate_async(data, apikey) #submit request for async generation
+
+		#jobInfo will only have a "message" field and no "id" field if the request failed
+		if "id" in jobInfo:
+			self.id = jobInfo["id"]
+		else:
+			self.cancel()
+			utility.errorMessage("horde.generate() error", str(jobInfo))
+		
+		self.createStatusChecker() #start checking status of the job, repeats every CHECK_WAIT seconds
+		return
+
+	def createStatusChecker(self):
+		#starts a threaded instance of an object that queries the status of the job
+		#object will connect to the DisplayGenerated function when the job is finished
+		self.thread = QThread()
+		self.checker = StatusChecker(self.id, self.maxWait)
+		self.checker.moveToThread(self.thread)
+		self.thread.started.connect(self.checker.checkStatus)
+		self.checker.message.connect(self.checkerMessage) #updates the status block
+		self.checker.done.connect(self.displayGenerated) #passes message result to display function
+		self.checker.finished.connect(self.thread.quit)
+		self.checker.finished.connect(self.checker.deleteLater)
+		self.thread.finished.connect(self.thread.deleteLater)
+
+		qDebug("starting status checker thread...")
+		self.thread.start()
 
 
-    def checkStatus(self):
-        #get the status of the current generation
-        qDebug("Checking status...")
-        data = hordeAPI.generate_check(self.id)
-        self.checkCounter = self.checkCounter + 1
-        #escape conditions
+	def cancel(self, message="Generation canceled."):
+		self.cancelled = True
+		self.pushEvent(message, utility.UpdateEvent.TYPE_FINISHED)
 
-        if self.cancelled:
-            self.pushEvent("Generation cancelled.", utility.UpdateEvent.TYPE_CANCELLED)
-            qDebug("Generation cancelled.")
-            return
-
-        if not data:
-            self.cancel("Error calling Horde. Are you connected to the internet?")
-            return
-        if not data["is_possible"]:
-            self.cancel("Currently no worker available to generate your image. Please try a different model or lower resolution.")
-            return
-        if self.checkCounter >= self.checkMax:
-            self.cancel("Generation Fault: Image generation timed out after " + (self.checkMax * self.CHECK_WAIT)/60 + " minutes. Please try it again later.")
-            return
-        
-        #success - completed generation
-        if data["done"] == True and self.cancelled == False:
-            images = hordeAPI.generate_status(self.id) #self.getImages()
-            self.displayGenerated(images["generations"])
-            self.pushEvent("Generation completed.", utility.UpdateEvent.TYPE_FINISHED)
-            return
-
-        #pending condition, check again
-        if data["processing"] == 0:
-            self.pushEvent("Queue position: " + str(data["queue_position"]) + ", Wait time: " + str(data["wait_time"]) + "s")
-        elif data["processing"] > 0:
-            self.pushEvent("Generating...\nWaiting: " + str(data["waiting"]) + "\nProcessing: " + str(data["processing"]) + "\nFinished: " + str(data["finished"]))
-
-        timer = threading.Timer(self.CHECK_WAIT, self.checkStatus)
-        timer.start()
-
-    def generate(self, settings: dict, img2img = False, inpainting = False):
-        #self.dialog = dialog
-        self.checkCounter = 0
-        self.cancelled = False
-        self.id = None
-        self.checkMax = (self.dialog.maxWait.value() * 60)/self.CHECK_WAIT
-        self.initMask = None
-        data: dict = settings["payloadData"]
-        params: dict = data["params"]
-
-        self.bounds = selectionHandler.getI2Ibounds(settings["minSize"], settings["maxSize"])
-        [gw, gh] = self.bounds[2] #generation bounds already sized correctly and fit to multiple of 64
-        params.update({"width": gw})
-        params.update({"height": gh})
-
-        if img2img:
-            if inpainting and (settings["inpaintMode"] == 0 or settings["inpaintMode"] == 2):
-                self.initMask = selectionHandler.getImg2ImgMask() #saved for later displaying
-            else:
-                self.initMask = None
-            init, mask = selectionHandler.getEncodedImageFromBounds(self.bounds, inpainting, settings['inpaintMode'])#inpainting) inpainting removed for img2img workaround
-            data.update({"source_image": init})
-            data.update({"source_processing": "img2img"})
-            params.update({"hires_fix": False})
-            params.update({"denoising_strength": settings["denoise_strength"]})
-            if inpainting and settings["inpaintMode"] >= 1:
-                data.update({"source_mask": mask})
-        if inpainting and settings["inpaintMode"] == 3: #implies img2img
-            data.update({"source_processing": "inpainting"})
-
-        apikey = "0000000000" if settings["apikey"] == "" else settings["apikey"]
-        #utility.errorMessage("generation info:", str(data))
-        jobInfo = hordeAPI.generate_async(data, apikey) #submit request for async generation
-
-        #jobInfo will only have a "message" field and no "id" field if the request failed
-        if "id" in jobInfo:
-            self.id = jobInfo["id"]
-        else:
-            self.cancel()
-            utility.errorMessage("horde.generate() error", str(jobInfo))
-        
-        self.checkStatus() #start checking status of the job, repeats every CHECK_WAIT seconds
-        return
-
-    def cancel(self, message="Generation canceled."):
-        self.cancelled = True
-        self.pushEvent(message, utility.UpdateEvent.TYPE_FINISHED)
+	@pyqtSlot(str)
+	def checkerMessage(self, message: str):
+		self.pushEvent(message)

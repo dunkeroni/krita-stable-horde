@@ -180,6 +180,7 @@ def putImageIntoBounds(bytes, bounds, nametag="new generation", mask = None):
             thisMask = mask.duplicate() #necessary if there were multiple generations
             root.addChildNode(thisMask, None)
             doc.setActiveNode(thisMask)
+            doc.waitForDone()
             Krita.instance().action('convert_to_transparency_mask').trigger()
             doc.waitForDone()
             

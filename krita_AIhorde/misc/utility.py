@@ -103,6 +103,7 @@ class UpdateEvent(QEvent): #used to create status messages from threaded functio
    TYPE_ERROR = 1
    TYPE_INFO = 2
    TYPE_FINISHED = 3
+   TYPE_RESULTS = 4
 
    def __init__(self, eventId, updateType, message = ""):
       self.updateType = updateType

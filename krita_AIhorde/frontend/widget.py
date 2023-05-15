@@ -38,6 +38,7 @@ class Dialog(QWidget):
 		self.refreshUser()
 
 		self.worker = horde.Worker(self) #needs dialog reference for threaded event messages
+		self.rescol = resultCollector.ResultCollector(self.results)
 
 		if utility.checkWebpSupport() is False:
 			self.generateButton.setEnabled(False)
@@ -136,7 +137,7 @@ class Dialog(QWidget):
 
 	def generate(self, img2img = False, inpainting = False):
 		qDebug("Generating image from dialog call...")
-		doc = utility.document()
+		doc = Krita.instance().activeDocument()
 
 		# no document
 		if doc is None:
@@ -163,14 +164,14 @@ class Dialog(QWidget):
 			#self.worker.triggerGenerate.emit(settings) #trigger threaded generation task
 	
 	def img2imgGenerate(self):
-		if utility.document().selection() is None:
+		if Krita.instance().activeDocument().selection() is None:
 			utility.errorMessage("Make a selection.", "Please select a region of the document before enaging Img2Img mode.")
 			return
 		self.generate(True, self.maskMode)
 		self.toggleMaskMode(True)
 
 	def toggleMaskMode(self, forceDisable = False):
-		doc = utility.document()
+		doc = Krita.instance().activeDocument()
 		if self.maskMode or forceDisable:
 			qDebug("Disabling mask mode...")
 			self.maskMode = False
@@ -311,7 +312,7 @@ class Dialog(QWidget):
 		return data
 	
 	def updateKudos(self):
-		doc = utility.document()
+		doc = Krita.instance().activeDocument()
 		if doc is None:
 			return
 		selection = doc.selection()
@@ -377,8 +378,6 @@ class Dialog(QWidget):
 				self.statusDisplay.setText("An error occurred: " + ev.message)
 				self.setEnabledStatus(True)
 			elif ev.updateType == utility.UpdateEvent.TYPE_FINISHED:
-				#set status to none and activate the generate button again
-				#self.statusDisplay.setText("Done.")
 				self.setEnabledStatus(True)
 			elif ev.updateType == utility.UpdateEvent.TYPE_RESULTS:
 				self.rescol.setBuffer(ev.message)

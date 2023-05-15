@@ -2,24 +2,13 @@ from krita import *
 from PyQt5.QtCore import qDebug
 
 import base64
-import re, time
+import re
 
 from ..misc import utility
-import urllib.request, urllib.error, threading
+import threading
 from ..core import hordeAPI, selectionHandler, resultCollector
-from ..core.statusChecker import StatusChecker
 
 class Worker(QObject): #QObject allows threaded running
-	#inbound signal
-	triggerGenerate = pyqtSignal(dict) #trigger the generate function
-
-	#outbound signals
-	enableGUI = pyqtSignal(bool) #enable/disable the main GUI
-	statusUpdate = pyqtSignal(str) #update the status block
-	generateDone = pyqtSignal() #return results node dictionary
-	newBufferEntry = pyqtSignal(Node, dict) #add a new node to the buffer
-	resultsReady = pyqtSignal(dict) #return results
-
 	CHECK_WAIT = 5
 
 	def __init__(self, dialog, statusBox = None):
@@ -31,21 +20,18 @@ class Worker(QObject): #QObject allows threaded running
 		self.checkCounter = 0
 		self.id = None
 		self.eventId = QEvent.registerEventType()
-		self.triggerGenerate.connect(self.generate)
 
 	def displayGenerated(self, images):
 		for image in images:
 			seed = image["seed"]
 
 			if re.match("^https.*", image["img"]):
-				#response = urllib.request.urlopen(image["img"])
 				bytes = hordeAPI.pullImage(image)
 			else:
 				bytes = base64.b64decode(image["img"])
 				bytes = QByteArray(bytes)
-
-			#selectionHandler.putImageIntoBounds(bytes, self.bounds, seed)
 			selectionHandler.putImageIntoBounds(bytes, self.bounds, seed, self.initMask)
+
 		self.pushEvent(str(len(images)) + " images generated.")
 		utility.UpdateEvent(self.eventId, utility.UpdateEvent.TYPE_FINISHED)
 
@@ -60,13 +46,12 @@ class Worker(QObject): #QObject allows threaded running
 		qDebug("Checking status...")
 		data = hordeAPI.generate_check(self.id)
 		self.checkCounter = self.checkCounter + 1
-		#escape conditions
 
+		#escape conditions
 		if self.cancelled:
 			self.pushEvent("Generation cancelled.", utility.UpdateEvent.TYPE_CANCELLED)
 			qDebug("Generation cancelled.")
 			return
-
 		if not data:
 			self.cancel("Error calling Horde. Are you connected to the internet?")
 			return
@@ -79,7 +64,7 @@ class Worker(QObject): #QObject allows threaded running
 		
 		#success - completed generation
 		if data["done"] == True and self.cancelled == False:
-			images = hordeAPI.generate_status(self.id) #self.getImages()
+			images = hordeAPI.generate_status(self.id)
 			self.displayGenerated(images["generations"])
 			self.timer.stop()
 			self.pushEvent("Generation completed.", utility.UpdateEvent.TYPE_FINISHED)
@@ -100,8 +85,7 @@ class Worker(QObject): #QObject allows threaded running
 		Default Python threading is ok, but it does force up-level data passes to go through events which is messy.
 		"""
 		timer = threading.Timer(self.CHECK_WAIT, self.checkStatus)
-		timer.start()
-		#self.timer.start(self.CHECK_WAIT * 1000)
+		timer.start() #Initiate this check again later, until then the thread is free to do other things
 
 	def generate(self, settings: dict):
 		self.checkMax = (settings["maxWait"] * 60)/self.CHECK_WAIT
@@ -136,7 +120,6 @@ class Worker(QObject): #QObject allows threaded running
 			data.update({"source_processing": "inpainting"})
 
 		apikey = "0000000000" if settings["apikey"] == "" else settings["apikey"]
-		#utility.errorMessage("generation info:", str(data))
 		jobInfo = hordeAPI.generate_async(data, apikey) #submit request for async generation
 
 		#jobInfo will only have a "message" field and no "id" field if the request failed
@@ -146,8 +129,6 @@ class Worker(QObject): #QObject allows threaded running
 			self.cancel()
 			utility.errorMessage("horde.generate() error", str(jobInfo))
 		
-		self.timer = QTimer()
-		self.timer.timeout.connect(self.checkStatus)
 		self.checkStatus() #start checking status of the job, repeats every CHECK_WAIT seconds
 		return
 

@@ -43,7 +43,6 @@ class ResultCollector(QObject):
 			self.deleteButton.clicked.connect(self.deleteIndex)
 			self.deleteAllButton.clicked.connect(self.deleteAllOthers)
 		
-	@pyqtSlot(dict)
 	def displayGenerated(self, displayInfo):
 		qDebug("displayGenerated")
 		images = displayInfo["generations"]
@@ -66,7 +65,6 @@ class ResultCollector(QObject):
 			node = doc.activeNode()
 			self.addBufferNode(node, {'seed': seed}) #add result node to the buffer
 
-	@pyqtSlot(Node, dict)
 	def addBufferNode(self, node: Node, info: dict):
 		qDebug("addBufferNode")
 		#add node and info to the buffer as a tuple
@@ -79,7 +77,6 @@ class ResultCollector(QObject):
 	def setBuffer(self, buffer):
 		self.buffer = buffer
 	
-	@pyqtSlot()
 	def bufferToDB(self, id: str = None):
 		try:
 			qDebug("bufferToDB")

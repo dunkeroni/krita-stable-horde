@@ -11,9 +11,12 @@ The plugin has been tested in Krita 5.1.3
 
 **IMPORTANT:** If you are running Linux, please make sure, you have webp support for Qt5 installed, as this is the image format stablehorde uses. Execute the following command to check, if it's already supported: ```python -c "from PyQt5.Qt import *; print([bytes(x).decode('ascii') for x in QImageReader.supportedImageFormats()])"```. To install it, use ```sudo pacman -S qt5-imageformats``` (Arch) or ```sudo apt install qt5-image-formats-plugins``` (Debian).
 
-1. Download the repository as a zip.
+1. Download the latest importable zip archive from the Releases section.
 
-2. Copy the krita_AIhorde.py file and krita_AIhorde folder into your Krita plugin folder. The plugin folder is located at:
+2. Start Krita. Go to Tools > Scripts > Import Python Plugin from File... and select the zip archive.
+
+   ALTERNATIVELY: Download this repository as a zip.  
+   Copy the krita_AIhorde.py file and krita_AIhorde folder into your Krita plugin folder. The plugin folder is located at:  
    - Windows: ```C:\Users\<username>\AppData\Roaming\krita\pykrita```  
    - Linux: ```~/.local/share/krita/pykrita```  
    - MacOS: ```~/Library/Application Support/krita/pykrita```  
@@ -21,7 +24,7 @@ The plugin has been tested in Krita 5.1.3
 
 3. Start Krita. Go to Settings > Configure Krita > Python Plugin Manager. You should see the "Krita AI Horde" plugin in the list. Enable it and restart Krita.  
 
-4. Enable Settings > Dockers > AI Horde. The docker should appear on the left side.  
+4. Enable in Settings > Dockers > AI Horde. The docker should appear on the left side.  
 
 5. [OPTIONAL] Settings > Dockers > Log Viewer, and click the "enable logging" button on it to see the debug info from the plugin.
 

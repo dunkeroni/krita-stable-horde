@@ -5,6 +5,7 @@ import base64
 import re, time
 
 from ..misc import utility
+import urllib.request, urllib.error, threading
 from ..core import hordeAPI, selectionHandler, resultCollector
 from ..core.statusChecker import StatusChecker
 
@@ -32,38 +33,79 @@ class Worker(QObject): #QObject allows threaded running
 		self.eventId = QEvent.registerEventType()
 		self.triggerGenerate.connect(self.generate)
 
-	@pyqtSlot(dict)
-	def displayGenerated(self, data):
-		doc = Krita.instance().activeDocument()
-		images = data["generations"]
+	def displayGenerated(self, images):
 		for image in images:
 			seed = image["seed"]
 
 			if re.match("^https.*", image["img"]):
+				#response = urllib.request.urlopen(image["img"])
 				bytes = hordeAPI.pullImage(image)
 			else:
 				bytes = base64.b64decode(image["img"])
 				bytes = QByteArray(bytes)
 
 			#selectionHandler.putImageIntoBounds(bytes, self.bounds, seed)
-			if bytes is None:
-				qDebug("ERROR: bytes is None")
-				return
 			selectionHandler.putImageIntoBounds(bytes, self.bounds, seed, self.initMask)
-			doc.waitForDone()
-			#get the active node
-			#node = doc.activeNode()
-			#qDebug("Adding node to buffer...")
-			#self.newBufferEntry.emit(node, {'seed': seed}) #add result node to the buffer
-			#qDebug("worker continuing...")
-		self.dialog.setEnabledStatus(True)
+		self.pushEvent(str(len(images)) + " images generated.")
+		utility.UpdateEvent(self.eventId, utility.UpdateEvent.TYPE_FINISHED)
 
 	def pushEvent(self, message, eventType = utility.UpdateEvent.TYPE_CHECKED):
 		#posts an event through a new UpdateEvent instance for the current multithreaded instance to provide status messages without crashing krita
 		ev = utility.UpdateEvent(self.eventId, eventType, message)
 		QApplication.postEvent(self.dialog, ev)
 
+
+	def checkStatus(self):
+		#get the status of the current generation
+		qDebug("Checking status...")
+		data = hordeAPI.generate_check(self.id)
+		self.checkCounter = self.checkCounter + 1
+		#escape conditions
+
+		if self.cancelled:
+			self.pushEvent("Generation cancelled.", utility.UpdateEvent.TYPE_CANCELLED)
+			qDebug("Generation cancelled.")
+			return
+
+		if not data:
+			self.cancel("Error calling Horde. Are you connected to the internet?")
+			return
+		if not data["is_possible"]:
+			self.cancel("Currently no worker available to generate your image. Please try a different model or lower resolution.")
+			return
+		if self.checkCounter >= self.checkMax:
+			self.cancel("Generation Fault: Image generation timed out after " + (self.checkMax * self.CHECK_WAIT)/60 + " minutes. Please try it again later.")
+			return
+		
+		#success - completed generation
+		if data["done"] == True and self.cancelled == False:
+			images = hordeAPI.generate_status(self.id) #self.getImages()
+			self.displayGenerated(images["generations"])
+			self.timer.stop()
+			self.pushEvent("Generation completed.", utility.UpdateEvent.TYPE_FINISHED)
+			return
+
+		#pending condition, check again
+		if data["processing"] == 0:
+			self.pushEvent("Queue position: " + str(data["queue_position"]) + ", Wait time: " + str(data["wait_time"]) + "s")
+		elif data["processing"] > 0:
+			self.pushEvent("Generating...\nWaiting: " + str(data["waiting"]) + "\nProcessing: " + str(data["processing"]) + "\nFinished: " + str(data["finished"]))
+
+		"""NOTE TO FUTURE SELF:
+		Functions being called by PyQT5's signals and slots handle threading differently.
+		Even if the object is not sectioned into its own thread, the function will be called in its own thread-safe environment.
+		This environement will not respect state alignments like document.waitForDone() and cannot correctly add child nodes to new nodes.
+		As a result, attempting to display nodes and apply transparency masks will not work if A.B.connect(function) is used in any part of the pipeline.
+
+		Default Python threading is ok, but it does force up-level data passes to go through events which is messy.
+		"""
+		timer = threading.Timer(self.CHECK_WAIT, self.checkStatus)
+		timer.start()
+		#self.timer.start(self.CHECK_WAIT * 1000)
+
 	def generate(self, settings: dict):
+		self.checkMax = (settings["maxWait"] * 60)/self.CHECK_WAIT
+		self.checkCounter = 0
 		img2img = settings["genImg2img"]
 		inpainting = settings["genInpainting"]
 		self.cancelled = False
@@ -108,46 +150,6 @@ class Worker(QObject): #QObject allows threaded running
 		self.timer.timeout.connect(self.checkStatus)
 		self.checkStatus() #start checking status of the job, repeats every CHECK_WAIT seconds
 		return
-
-	def checkStatus(self, timeout = 300):
-		#get the status of the current generation
-		qDebug("Checking status...")
-		data = hordeAPI.generate_check(self.id)
-		self.checkCounter = self.checkCounter + 1
-		self.checkMax = timeout // self.CHECK_WAIT
-		self.checkCounter = 0
-		#escape conditions
-
-		if not data:
-			self.pushEvent("Error calling Horde. Are you connected to the internet?")
-			self.cancelled = True
-		if not data["is_possible"]:
-			self.pushEvent("Currently no worker available to generate your image. Please try a different model or lower resolution.")
-			self.cancelled = True
-		if self.checkCounter >= self.checkMax:
-			self.pushEvent("Generation Fault: Image generation timed out after " + (self.checkMax * self.CHECK_WAIT)/60 + " minutes. Please try it again later.")
-			self.cancelled = True
-		
-		#success - completed generation
-		if self.cancelled == False and data["done"] == True:
-			images = hordeAPI.generate_status(self.id) #self.getImages()
-			self.pushEvent("Generation completed.")
-			self.timer.stop() #stop the timer so it doesn't trigger forever
-			self.displayGenerated(images)
-			return
-		
-		if self.cancelled:
-			self.pushEvent("Generation cancelled.")
-			return
-
-		#pending condition, update progress
-		if data["processing"] == 0:
-			self.pushEvent("Queue position: " + str(data["queue_position"]) + ", Wait time: " + str(data["wait_time"]) + "s")
-		elif data["processing"] > 0:
-			self.pushEvent("Generating...\nWaiting: " + str(data["waiting"]) + "\nProcessing: " + str(data["processing"]) + "\nFinished: " + str(data["finished"]))
-
-		self.timer.start(self.CHECK_WAIT * 1000)
-
 
 	def cancel(self, message="Generation canceled."):
 		self.cancelled = True

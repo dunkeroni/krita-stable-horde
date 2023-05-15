@@ -2,7 +2,7 @@ from krita import *
 from PyQt5.QtCore import qDebug
 
 import base64
-import re
+import re, time
 
 from ..misc import utility
 from ..core import hordeAPI, selectionHandler, resultCollector
@@ -21,8 +21,9 @@ class Worker(QObject): #QObject allows threaded running
 
 	CHECK_WAIT = 5
 
-	def __init__(self, dialog):
+	def __init__(self, dialog, statusBox = None):
 		super(Worker, self).__init__()
+		self.statusBox: QTextEdit = statusBox
 		self.dialog = dialog
 		self.canceled = False
 		self.maxWait = 300
@@ -103,31 +104,51 @@ class Worker(QObject): #QObject allows threaded running
 			self.cancel()
 			utility.errorMessage("horde.generate() error", str(jobInfo))
 		
-		self.createStatusChecker() #start checking status of the job, repeats every CHECK_WAIT seconds
+		self.timer = QTimer()
+		self.timer.timeout.connect(self.checkStatus)
+		self.checkStatus() #start checking status of the job, repeats every CHECK_WAIT seconds
 		return
 
-	def createStatusChecker(self):
-		#starts a threaded instance of an object that queries the status of the job
-		#object will connect to the DisplayGenerated function when the job is finished
-		#self.thread = QThread()
-		self.checker = StatusChecker(self.id, self.maxWait)
-		#self.checker.moveToThread(self.thread)
-		#self.thread.started.connect(self.checker.checkStatus)
-		self.checker.message.connect(self.checkerMessage) #updates the status block
-		self.checker.done.connect(self.displayGenerated) #passes message result to display function
-		#self.checker.finished.connect(self.thread.quit)
-		#self.checker.finished.connect(self.checker.deleteLater)
-		#self.thread.finished.connect(self.thread.deleteLater)
+	def checkStatus(self, timeout = 300):
+		#get the status of the current generation
+		qDebug("Checking status...")
+		data = hordeAPI.generate_check(self.id)
+		self.checkCounter = self.checkCounter + 1
+		self.checkMax = timeout // self.CHECK_WAIT
+		self.checkCounter = 0
+		#escape conditions
 
-		qDebug("starting status checker thread...")
-		#self.thread.start()
-		self.checker.checkStatus()
+		if not data:
+			self.pushEvent("Error calling Horde. Are you connected to the internet?")
+			self.cancelled = True
+		if not data["is_possible"]:
+			self.pushEvent("Currently no worker available to generate your image. Please try a different model or lower resolution.")
+			self.cancelled = True
+		if self.checkCounter >= self.checkMax:
+			self.pushEvent("Generation Fault: Image generation timed out after " + (self.checkMax * self.CHECK_WAIT)/60 + " minutes. Please try it again later.")
+			self.cancelled = True
+		
+		#success - completed generation
+		if self.cancelled == False and data["done"] == True:
+			images = hordeAPI.generate_status(self.id) #self.getImages()
+			self.pushEvent("Generation completed.")
+			self.timer.stop() #stop the timer so it doesn't trigger forever
+			self.displayGenerated(images)
+			return
+		
+		if self.cancelled:
+			self.pushEvent("Generation cancelled.")
+			return
+
+		#pending condition, update progress
+		if data["processing"] == 0:
+			self.pushEvent("Queue position: " + str(data["queue_position"]) + ", Wait time: " + str(data["wait_time"]) + "s")
+		elif data["processing"] > 0:
+			self.pushEvent("Generating...\nWaiting: " + str(data["waiting"]) + "\nProcessing: " + str(data["processing"]) + "\nFinished: " + str(data["finished"]))
+
+		self.timer.start(self.CHECK_WAIT * 1000)
 
 
 	def cancel(self, message="Generation canceled."):
 		self.cancelled = True
 		self.pushEvent(message, utility.UpdateEvent.TYPE_FINISHED)
-
-	@pyqtSlot(str)
-	def checkerMessage(self, message: str):
-		self.pushEvent(message)

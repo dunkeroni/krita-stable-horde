@@ -1,5 +1,7 @@
 from krita import *
+from PyQt5.QtCore import QTimer
 from PyQt5.QtCore import qDebug
+
 
 import threading
 from ..core import hordeAPI
@@ -9,12 +11,14 @@ class StatusChecker(QObject):
 	done = pyqtSignal(dict)
 	finished = pyqtSignal()
 	message = pyqtSignal(str)
+	timer = QTimer()
 	def __init__(self, id, timeout):
 		super(StatusChecker, self).__init__()
 		self.cancelled = False
 		self.checkMax = timeout // self.CHECK_WAIT
 		self.checkCounter = 0
 		self.id = id
+		self.timer.timeout.connect(self.checkStatus)
 
 	def checkStatus(self):
 		#get the status of the current generation
@@ -52,5 +56,4 @@ class StatusChecker(QObject):
 		elif data["processing"] > 0:
 			self.message.emit("Generating...\nWaiting: " + str(data["waiting"]) + "\nProcessing: " + str(data["processing"]) + "\nFinished: " + str(data["finished"]))
 
-		timer = threading.Timer(self.CHECK_WAIT, self.checkStatus)
-		timer.start()
+		self.timer.start(self.CHECK_WAIT * 1000)

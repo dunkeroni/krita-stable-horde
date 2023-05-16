@@ -32,7 +32,7 @@ def standardConnection(req: urllib.request.Request):
 	try:
 		response = urllib.request.urlopen(req)
 	except urllib.error.URLError as e:
-		utility.errorMessage("status_models url error", str(e.reason) + "\n Check your internet connection and try again.")
+		utility.errorMessage("Horde Connection Error", str(e.reason) + "\n Check your internet connection and try again.")
 		response = None
 		
 	try:
@@ -202,7 +202,6 @@ def generate_check(id):
 	"message": "string"
 	}
 	"""
- 
 	request = urllib.request.Request(url = root + "generate/check/" + id)
 	jobInfo = standardConnection(request)
 	if jobInfo is None:

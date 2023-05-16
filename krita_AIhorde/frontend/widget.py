@@ -37,8 +37,8 @@ class Dialog(QWidget):
 		#self.updateKudos()
 		self.refreshUser()
 
-		self.worker = horde.Worker(self) #needs dialog reference for threaded event messages
 		self.rescol = resultCollector.ResultCollector(self.results)
+		self.worker = horde.Worker(self) #needs dialog reference for threaded event messages
 
 		if utility.checkWebpSupport() is False:
 			self.generateButton.setEnabled(False)

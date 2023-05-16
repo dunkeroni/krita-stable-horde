@@ -8,13 +8,13 @@ from ..misc import utility
 import threading
 from ..core import hordeAPI, selectionHandler, resultCollector
 
-class Worker(QObject): #QObject allows threaded running
+class Worker():
 	CHECK_WAIT = 5
 
-	def __init__(self, dialog, statusBox = None):
+	def __init__(self, dialog):
 		super(Worker, self).__init__()
-		self.statusBox: QTextEdit = statusBox
 		self.dialog = dialog
+		self.buffer = []
 		self.canceled = False
 		self.maxWait = 300
 		self.checkCounter = 0
@@ -22,18 +22,22 @@ class Worker(QObject): #QObject allows threaded running
 		self.eventId = QEvent.registerEventType()
 
 	def displayGenerated(self, images):
+		doc = Krita.instance().activeDocument()
 		for image in images:
 			seed = image["seed"]
-
 			if re.match("^https.*", image["img"]):
 				bytes = hordeAPI.pullImage(image)
 			else:
 				bytes = base64.b64decode(image["img"])
 				bytes = QByteArray(bytes)
-			selectionHandler.putImageIntoBounds(bytes, self.bounds, seed, self.initMask)
+			node: Node = selectionHandler.putImageIntoBounds(bytes, self.bounds, seed, self.initMask)
+			if node is not None:
+				self.buffer.append([node, {'seed': seed}]) #Buffer is List[List[node, dict]]
 
 		self.pushEvent(str(len(images)) + " images generated.")
 		utility.UpdateEvent(self.eventId, utility.UpdateEvent.TYPE_FINISHED)
+		self.pushEvent(self.buffer, utility.UpdateEvent.TYPE_RESULTS) #push nodes to result collector
+		self.buffer = [] #clear buffer
 
 	def pushEvent(self, message, eventType = utility.UpdateEvent.TYPE_CHECKED):
 		#posts an event through a new UpdateEvent instance for the current multithreaded instance to provide status messages without crashing krita
@@ -66,7 +70,6 @@ class Worker(QObject): #QObject allows threaded running
 		if data["done"] == True and self.cancelled == False:
 			images = hordeAPI.generate_status(self.id)
 			self.displayGenerated(images["generations"])
-			self.timer.stop()
 			self.pushEvent("Generation completed.", utility.UpdateEvent.TYPE_FINISHED)
 			return
 
@@ -80,7 +83,7 @@ class Worker(QObject): #QObject allows threaded running
 		Functions being called by PyQT5's signals and slots handle threading differently.
 		Even if the object is not sectioned into its own thread, the function will be called in its own thread-safe environment.
 		This environement will not respect state alignments like document.waitForDone() and cannot correctly add child nodes to new nodes.
-		As a result, attempting to display nodes and apply transparency masks will not work if A.B.connect(function) is used in any part of the pipeline.
+		As a result, attempting to display nodes and apply transparency masks will not work if A.B.connect(function) is used in the pipeline.
 
 		Default Python threading is ok, but it does force up-level data passes to go through events which is messy.
 		"""
@@ -121,6 +124,9 @@ class Worker(QObject): #QObject allows threaded running
 
 		apikey = "0000000000" if settings["apikey"] == "" else settings["apikey"]
 		jobInfo = hordeAPI.generate_async(data, apikey) #submit request for async generation
+		if jobInfo == {}:
+			self.cancel("Error calling Horde. Are you connected to the internet?")
+			return
 
 		#jobInfo will only have a "message" field and no "id" field if the request failed
 		if "id" in jobInfo:

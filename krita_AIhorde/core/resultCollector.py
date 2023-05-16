@@ -1,6 +1,7 @@
 from krita import *
 import re, base64
 from ..core import hordeAPI, selectionHandler
+from PyQt5.QtCore import qDebug
 
 """ResultCollector Class Description:
 The Result Collector will store references to krita nodes as well as image parameters for later reference.
@@ -22,7 +23,7 @@ Actions from Dialog interface:
 - Copy prompt from result info
 """
 
-class ResultCollector(QObject):
+class ResultCollector():
 	def __init__(self, results: dict = None):
 		super(ResultCollector, self).__init__()
 		self.buffer = []
@@ -66,6 +67,10 @@ class ResultCollector(QObject):
 			self.addBufferNode(node, {'seed': seed}) #add result node to the buffer
 
 	def addBufferNode(self, node: Node, info: dict):
+		"""BUFFER FORMAT:
+		Buffer = [
+		[node, dict], [node, dict], ...
+		]"""
 		qDebug("addBufferNode")
 		#add node and info to the buffer as a tuple
 		self.buffer.append([node, info])
@@ -78,30 +83,62 @@ class ResultCollector(QObject):
 		self.buffer = buffer
 	
 	def bufferToDB(self, id: str = None):
+		"""DB FORMAT:
+		DB = {
+		"groupID1": {
+			"groupLayer": nodeUID,
+			"index": int,
+			"results": {
+				"nodeUID": {
+					"node": Node,
+					"info": dict,
+					"UID": nodeUID
+				},
+				"nodeUID": {
+					"node": Node,
+					"info": dict,
+					"UID": nodeUID
+				},
+				...
+			}
+		"groupID2": {
+			...
+			}
+		}
+		"""
 		try:
 			qDebug("bufferToDB")
-			nodeDict = {}
-			for index in self.buffer:
-				node: Node = self.buffer[index][0]
+			resultsDict = {}
+			for result in self.buffer:
+				node: Node = result[0]
 				nodeUID = node.uniqueId()
 				qDebug("node found: " + nodeUID.toString())
-				nodeDict[nodeUID] = {
+				resultsDict[nodeUID.toString()] = {
 					"node": node,
-					"info": self.buffer[index][1],
+					"info": result[1],
 					"UID": nodeUID
 				}
 			doc = Krita.instance().activeDocument()
 			root = doc.rootNode()
 			if id is None:
 				id = "Group " + str(len(self.DB))
+			qDebug("Creating group layer")
 			gn = doc.createGroupLayer(id)
-			for nodeUID in nodeDict:
-				gn.addChildNode(nodeDict[nodeUID]['node'], None)
+			qDebug("Adding group layer to root")
 			root.addChildNode(gn, None)
 			doc.setActiveNode(gn)
+			doc.waitForDone()
+			for result in resultsDict:
+				node = resultsDict[result]['node']
+				node.remove()
+				res = gn.addChildNode(node, None)
+				if not res:
+					qDebug("Failed to add node to group")
 
+			self.DB[id] = {} #create new group in DB
+			self.DB[id]['groupLayer'] = gn.uniqueId() #store the group layer reference
 			self.DB[id]['index'] = 0 #set default index to first result
-			self.DB[id]['results'] = nodeDict
+			self.DB[id]['results'] = resultsDict
 		except Exception as e:
 			qDebug("bufferToDB: " + str(e))
 			raise e
@@ -113,6 +150,7 @@ class ResultCollector(QObject):
 	
 	def getRef(self): #standardize the way we get the current result
 		if self.groupSelector.count() == 0:
+			qDebug("RESCOL ERROR: No results to get")
 			return None, None, None
 		id = self.groupSelector.currentText()
 		index = self.DB[id]['index']
@@ -121,6 +159,7 @@ class ResultCollector(QObject):
 	
 	def changeNextResult(self):
 		if self.groupSelector.count() == 0:
+			qDebug("RESCOL ERROR: No results to get")
 			return
 		id, index, results = self.getRef()
 		if index == len(results) - 1:
@@ -132,6 +171,7 @@ class ResultCollector(QObject):
 	
 	def changePrevResult(self):
 		if self.groupSelector.count() == 0:
+			qDebug("RESCOL ERROR: No results to get")
 			return
 		id, index, results = self.getRef()
 		if index == 0:
@@ -143,23 +183,31 @@ class ResultCollector(QObject):
 	
 	def showOnlyIndex(self, newindex):
 		if self.groupSelector.count() == 0:
+			qDebug("RESCOL ERROR: No results to get")
 			return
 		id, index, results = self.getRef()
+		qDebug("Showing only index " + str(newindex) + " of " + str(len(results)) + " results")
 		doc = Krita.instance().activeDocument()
-		for i, result in enumerate(results):
+		for i, (k, result) in enumerate(results.items()):
 			node: Node = doc.nodeByUniqueID(result['UID'])
 			if i == newindex:
+				qDebug("Showing node: " + result['UID'].toString() + " at index " + str(i))
 				node.setVisible(True)
 			else:
 				node.setVisible(False)
+		doc.waitForDone()
+		doc.refreshProjection()
 	
 	def deleteIndex(self):
 		if self.groupSelector.count() == 0:
+			qDebug("RESCOL ERROR: No results to get")
 			return
 		id, index, results = self.getRef()
-		node: Node = results[index]['node']
-		node.remove()
-		del results[index]
+		for i, result in results.items():
+			if i == index:
+				node: Node = results[index]['node']
+				node.remove()
+				del result
 		if index == len(results):
 			index = 0
 		self.DB[id]['index'] = index
@@ -167,6 +215,7 @@ class ResultCollector(QObject):
 
 	def deleteAllOthers(self):
 		if self.groupSelector.count() == 0:
+			qDebug("RESCOL ERROR: No results to get")
 			return
 		id, index, results = self.getRef()
 		doc = Krita.instance().activeDocument()

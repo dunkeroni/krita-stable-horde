@@ -180,9 +180,10 @@ def putImageIntoBounds(bytes, bounds, nametag="new generation", mask = None):
             doc.setActiveNode(thisMask)
             doc.waitForDone()
             Krita.instance().action('convert_to_transparency_mask').trigger()
+        
+        return node
             
     except:
         qDebug("failed to display image")
         raise Exception("Failed to display image. Something horrible happened instead.")
-    doc.waitForDone()
-    doc.refreshProjection()
+        return None

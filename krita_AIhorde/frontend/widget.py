@@ -25,6 +25,7 @@ class Dialog(QWidget):
 		self.experiment = experimentTab.addExperimentTab(tabs, self)
 		self.results = resultsTab.addResultsTab(tabs, self)
 		self.layout.addWidget(tabs)
+		self.tabs = tabs
 
 		self.setLayout(self.layout)
 		self.resize(350, 300)
@@ -382,6 +383,7 @@ class Dialog(QWidget):
 			elif ev.updateType == utility.UpdateEvent.TYPE_RESULTS:
 				self.rescol.setBuffer(ev.message)
 				self.rescol.bufferToDB()
+				self.tabs.setCurrentIndex(4)
 	
 	@pyqtSlot(str)
 	def updateStatus(self, status):

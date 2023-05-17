@@ -21,7 +21,6 @@ List of existing and planned features
 ~~Change interface from floating window on plugin activation to dockers~~  
     ~~Automatically available on startup~~  
     ~~Settings on left panel~~  
-    Results interaction on bottom?  
 ### Basics:
 ~~Model selection~~  
     ~~filtering/sorting?~~  
@@ -37,35 +36,24 @@ List of existing and planned features
 Premade prompts  
     Custom positive+negative saved prompts  
     Community prompts from horde  
-Multiple Image results  
-    Need to organize results into layer groups  
-    Create some interface to rotate through options. Invis unused layers in group.  
-        Architectural note:  
-        1. create an invisible layer for each request and group  
-        2. queue up a worker per request  
-        3. set worker to resolve its own interaction or cancelation with layer handler  
-        4. Add interface bar for swapping through layers  
 Add Control Net  
     save/clear control net image from selection?  
+### Results Collection:
+Results interface in regular docker as its own tab.  
+    ~~Dropdown list for result groups~~  
+    ~~Buttons to iterate through current group~~  
+    Delete current result or delete all other results if desired  
+    Inpaint mask needs to be carried through to the results buffer  
+    Display generation info on currently selected result
+~~Horde interactor needs to pass results into requestor library where they are saved.~~  
+Widget needs to switch to results tab when results are available and results > 1
+
 ### Interfacing:
 ~~Generate on Selection instead of whole file resolution~~  
     ~~Adjustable max resolution for non-square selections~~  
     ~~Fit rectangle to next 64 multiple around selection~~  
     Auto-mask selection?  
-    Inpainting Masks:  
-        Intended Workflow:  
-            1. Select rectangular area with normal selection box  
-            2. Hit "Inpaint Mask" button  
-            3. Draw mask inside selection with brush tool  
-            4. Hit "Inpaint Img2Img"  
-            5. Choose from results  
-        Functional Backend (starts on "Inpaint Mask" trigger):  
-            1. Check for selection, prompt warning if it does not exist
-            2. Activate global selection layer
-            3. Switch to brush tool --> wait for user to send i2i command
-            4. Crop selection, invert, convert to greyscale mask image
-            5. Disable global mask, change back to rectangular selection tool
-            6. Generate images grom horde, hand back to user
+        Currently a selection is required before switching to mask mode. Should not require.  
 
 ~~Settings window permanently fixed as toolbar~~  
 ~~User info from API key (kudos, generation statistics, etc.)~~  
@@ -76,4 +64,4 @@ Errors on first load when API key is blank.
 Inpainting with some samplers (DDIM) causes a faulty request which errors on check.  
     This is a horde issue, not a plugin issue.  
     Workaround: use a different sampler.  
-    Fix: Will add some restrictions to samplers in the future.
+    Fix: Will add some restrictions to samplers in the future.  

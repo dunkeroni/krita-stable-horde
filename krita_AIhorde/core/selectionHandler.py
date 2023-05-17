@@ -62,7 +62,7 @@ def getI2Ibounds(minSize=512, maxSize = 1536):
     #Result will have the same top left corner of selection with the longer side extended to the nearest upscaled multiple of 64
     #IMPORTANT: Longer side is an integer and may not extend to an even multiple of 64. Need to check again when encoding.
     #bounds[0] is the original selection. bounds[1] is the adjusted selection to an aspect ratio that will fit generation. bounds[2] is the intended generation size.
-    doc = utility.document()
+    doc = Krita.instance().activeDocument()
     selection = doc.selection()
     bounds  = [[], [], []]
     if selection is not None:
@@ -101,7 +101,7 @@ def getEncodedImageFromBounds(bounds, inpainting = False, inpaintMode = 0):
     [x, y, w, h] = bounds[1] #bounds[1] is the adjusted selection bounds
     [gw, gh] = bounds[2]
     qDebug("Values[ x: %d, y: %d, w: %d, h: %d ]" % (x, y, w, h))
-    doc = utility.document()
+    doc = Krita.instance().activeDocument()
     mask = mdata = None
 
     if inpainting:
@@ -113,16 +113,12 @@ def getEncodedImageFromBounds(bounds, inpainting = False, inpaintMode = 0):
         else:
             qDebug("Found inpainting mask")
             maskbytes = maskNode.pixelData(x, y, w, h)
-            mask = QImage(maskbytes.data(), w, h, QImage.Format_RGBA8888)
+            mask = QImage(maskbytes.data(), w, h, QImage.Format_RGBA8888).rgbSwapped()
             utility.deleteMaskNode()
             doc.waitForDone()
 
     bytes = doc.pixelData(x, y, w, h)
     image = QImage(bytes.data(), w, h, QImage.Format_RGBA8888).rgbSwapped()
-    if inpainting and inpaintMode != 3: #actual inpainting has a reversed mask from the other modes
-        mask.invertPixels(QImage.InvertRgba)
-        #image.setAlphaChannel(mask.convertToFormat(QImage.Format_Alpha8))
-        qDebug("Set alpha channel to mask layer")
     image = image.scaled(gw, gh, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
     qDebug("Upscaled image to %dx%d" % (gw, gh))
     bytes = QByteArray()
@@ -140,18 +136,17 @@ def getEncodedImageFromBounds(bounds, inpainting = False, inpaintMode = 0):
 
 def getImg2ImgMask():
     qDebug("getImg2ImgMask")
-    doc = utility.document()
+    doc = Krita.instance().activeDocument()
     maskNode = doc.nodeByName(utility.INPAINT_MASK_NAME)
     if maskNode is None:
         qDebug("No inpainting mask found. Did you delete?")
         return None
     else:
         qDebug("Mask layer found. Will apply to result.")
-        mask = maskNode.duplicate() #skip the rest of this nonsense
-        #utility.deleteMaskNode() ################################################REPLACE ME LATER
-        return mask #skip the rest of this nonsense
+        mask = maskNode.duplicate() 
+        return mask 
 
-def putImageIntoBounds(bytes, bounds, nametag="new generation", mask = None):
+def putImageIntoBounds(bytes, bounds, nametag="new generation", groupNode = None, mask = None):
     try:
         qDebug("putImageIntoBounds: " + str(bounds))
         x, y, w, h = bounds[1] #bounds[1] is the adjusted selection bounds
@@ -167,24 +162,32 @@ def putImageIntoBounds(bytes, bounds, nametag="new generation", mask = None):
         image = image.copy(xs - x, ys - y, ws, hs)
         ptr = image.bits()
         ptr.setsize(image.byteCount())
-        doc = utility.document()
-        root = doc.rootNode()
+        doc = Krita.instance().activeDocument()
+        if groupNode is None:
+            root = doc.rootNode()
+        else:
+            root = groupNode
+        resultNode: GroupLayer = doc.createGroupLayer(nametag + " result")
+        root.addChildNode(resultNode, None)
+        doc.setActiveNode(resultNode)
         node = doc.createNode("Stablehorde " + str(nametag), "paintLayer")
-        root.addChildNode(node, None)
+        resultNode.addChildNode(node, None)
         qDebug("node added: " + str(nametag))
         node.setPixelData(QByteArray(ptr.asstring()), xs, ys, ws, hs)
         qDebug("pixel data added")
 
+        thisMask = None #will be returned if inpainting is not used
         if mask is not None:
             qDebug("Applying inpainting mask")
-            thisMask = mask.duplicate() #necessary if there were multiple generations
-            root.addChildNode(thisMask, None)
+            thisMask: Node = mask.duplicate() #necessary if there were multiple generations
+            resultNode.addChildNode(thisMask, node)
             doc.setActiveNode(thisMask)
-            Krita.instance().action('convert_to_transparency_mask').trigger()
             doc.waitForDone()
+            Krita.instance().action('convert_to_transparency_mask').trigger()
+        
+        return resultNode, thisMask
             
     except:
         qDebug("failed to display image")
         raise Exception("Failed to display image. Something horrible happened instead.")
-    doc.waitForDone()
-    doc.refreshProjection()
+        return None

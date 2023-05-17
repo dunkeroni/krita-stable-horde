@@ -15,9 +15,6 @@ def errorMessage(text, detailed):
    msgBox.setStyleSheet("QLabel{min-width: 300px;}")
    msgBox.exec()
 
-def document() -> Document:
-   return Krita.instance().activeDocument()
-
 def readSettings():
    defaults = {
       "denoise_strength": 30,
@@ -106,6 +103,7 @@ class UpdateEvent(QEvent): #used to create status messages from threaded functio
    TYPE_ERROR = 1
    TYPE_INFO = 2
    TYPE_FINISHED = 3
+   TYPE_RESULTS = 4
 
    def __init__(self, eventId, updateType, message = ""):
       self.updateType = updateType
@@ -113,7 +111,7 @@ class UpdateEvent(QEvent): #used to create status messages from threaded functio
       super().__init__(eventId)
 
 def deleteMaskNode():
-   doc = document()
+   doc = Krita.instance().activeDocument()
    if doc is None:
       return None
    maskNode = doc.nodeByName(INPAINT_MASK_NAME)
@@ -124,7 +122,7 @@ def deleteMaskNode():
       doc.refreshProjection()
 
 def createMaskNode():
-   doc = document()
+   doc = Krita.instance().activeDocument()
    if doc is None:
       return None
    maskNode = doc.nodeByName(INPAINT_MASK_NAME)

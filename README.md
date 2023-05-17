@@ -98,13 +98,14 @@ Images post-processed with upscalers will return a larger image than the generat
 
 ## Limitations
 
-   - **Generation speed:** Stablehorde is a cluster of stable-diffusion servers run by volunteers. The generation speed depends on how many servers are in the cluster, which hardware they use and how many others want to generate with stablehorde. The upside is, that stablehorde is free to use, the downside that the generation speed is unpredictable.
+   - **Generation speed:** Stablehorde is a cluster of stable-diffusion workers run by volunteers. The generation speed depends on how many workers are in the cluster, which hardware they use and how many others want to generate with stablehorde. The upside is, that stablehorde is free to use, the downside that the generation speed is unpredictable.
 
    - **Privacy:** The privacy stablehorde offers is similar to generating in a public discord channel. So, please assume, that neither your prompts nor your generated images are private.
    
    - **Features:** Currently text2img, img2img and inpainting are supported. See FeaturePlan.md for a list of planned and available features.
 
 ## FAQ
-**Why is the generated image smaller than the document?** Stable-diffusion only generates image sizes which are a multiple of 64. This means, if your document has a size of 650x512, the generated image will have a size of 640x512.
+**Why does the log show larger generations than the selected area?** Stable Diffusion only generates image sizes which are a multiple of 64. This plugin rounds up. If your selection has a size of 650x512, the generated image will have a size of 704x512. When you make a selection and attempt to generate, the plugin will scale the selection to the min/max size boundaries in your settings before finding the next multiple 64 that can be used for both dimensions. When an image is returned from the server, it could be a very different size than the selection depending on the settings used. In that case, it will be scaled to encompass the selection size before cropping to only display the intended area.  
+![ScalingExample](img/ScalingExample.png)
 
 **How do I report an error or request a new feature?** Please open a new issue in this repository.

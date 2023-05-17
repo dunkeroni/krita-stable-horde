@@ -1,7 +1,6 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-from ..misc import utility
 
 def addExperimentTab(tabs: QTabWidget, dialog):
     qDebug("Creating Experimental tab elements")

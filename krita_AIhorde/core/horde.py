@@ -14,7 +14,7 @@ class Worker():
 	def __init__(self, dialog):
 		super(Worker, self).__init__()
 		self.dialog = dialog
-		self.buffer = []
+		self.buffer = {}
 		self.canceled = False
 		self.maxWait = 300
 		self.checkCounter = 0
@@ -23,6 +23,14 @@ class Worker():
 
 	def displayGenerated(self, images):
 		doc = Krita.instance().activeDocument()
+		groupId = "Group " + str(len(self.dialog.rescol.DB))
+		groupNode = doc.createGroupLayer(groupId)
+		self.buffer["groupLayer"] = groupNode
+		self.buffer["results"] = []
+		root = doc.rootNode()
+		root.addChildNode(groupNode, None)
+		doc.setActiveNode(groupNode)
+		doc.waitForDone()
 		for image in images:
 			seed = image["seed"]
 			if re.match("^https.*", image["img"]):
@@ -30,9 +38,9 @@ class Worker():
 			else:
 				bytes = base64.b64decode(image["img"])
 				bytes = QByteArray(bytes)
-			node: Node = selectionHandler.putImageIntoBounds(bytes, self.bounds, seed, self.initMask)
+			node, mask = selectionHandler.putImageIntoBounds(bytes, self.bounds, seed, groupNode, self.initMask)
 			if node is not None:
-				self.buffer.append([node, {'seed': seed}]) #Buffer is List[List[node, dict]]
+				self.buffer["results"].append([node, mask, self.bounds, {'seed': seed}]) #Buffer is List[List[node, node, dict]]
 
 		self.pushEvent(str(len(images)) + " images generated.")
 		utility.UpdateEvent(self.eventId, utility.UpdateEvent.TYPE_FINISHED)

@@ -149,7 +149,7 @@ def getImg2ImgMask():
         mask = maskNode.duplicate() 
         return mask 
 
-def putImageIntoBounds(bytes, bounds, nametag="new generation", mask = None):
+def putImageIntoBounds(bytes, bounds, nametag="new generation", groupNode = None, mask = None):
     try:
         qDebug("putImageIntoBounds: " + str(bounds))
         x, y, w, h = bounds[1] #bounds[1] is the adjusted selection bounds
@@ -166,22 +166,30 @@ def putImageIntoBounds(bytes, bounds, nametag="new generation", mask = None):
         ptr = image.bits()
         ptr.setsize(image.byteCount())
         doc = Krita.instance().activeDocument()
-        root = doc.rootNode()
+        if groupNode is None:
+            root = doc.rootNode()
+        else:
+            root = groupNode
+        resultNode: GroupLayer = doc.createGroupLayer(nametag + " result")
+        root.addChildNode(resultNode, None)
+        doc.setActiveNode(resultNode)
+        doc.waitForDone()
         node = doc.createNode("Stablehorde " + str(nametag), "paintLayer")
-        root.addChildNode(node, None)
+        resultNode.addChildNode(node, None)
         qDebug("node added: " + str(nametag))
         node.setPixelData(QByteArray(ptr.asstring()), xs, ys, ws, hs)
         qDebug("pixel data added")
 
+        thisMask = None #will be returned if inpainting is not used
         if mask is not None:
             qDebug("Applying inpainting mask")
-            thisMask = mask.duplicate() #necessary if there were multiple generations
-            root.addChildNode(thisMask, None)
+            thisMask: Node = mask.duplicate() #necessary if there were multiple generations
+            resultNode.addChildNode(thisMask, node)
             doc.setActiveNode(thisMask)
             doc.waitForDone()
             Krita.instance().action('convert_to_transparency_mask').trigger()
         
-        return node
+        return resultNode, thisMask
             
     except:
         qDebug("failed to display image")

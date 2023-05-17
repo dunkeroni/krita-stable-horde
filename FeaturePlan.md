@@ -36,21 +36,16 @@ List of existing and planned features
 Premade prompts  
     Custom positive+negative saved prompts  
     Community prompts from horde  
-Multiple Image results  
-    Need to organize results into layer groups  
-    Create some interface to rotate through options. Invis unused layers in group.  
-        Architectural note:  
-        1. create a group layer for each request and collapse together  
-        3. set worker to resolve its own interaction or cancelation with layer handler  
-        4. Add interface bar for swapping through layers  
 Add Control Net  
     save/clear control net image from selection?  
 ### Results Collection:
-~~Results interface in regular docker as its own tab.~~  
-    Dropdown list for result groups  
-    Buttons to iterate through current group  
+Results interface in regular docker as its own tab.  
+    ~~Dropdown list for result groups~~  
+    ~~Buttons to iterate through current group~~  
     Delete current result or delete all other results if desired  
-Horde interactor needs to pass results into requestor library where they are saved.  
+    Inpaint mask needs to be carried through to the results buffer  
+    Display generation info on currently selected result
+~~Horde interactor needs to pass results into requestor library where they are saved.~~  
 Widget needs to switch to results tab when results are available and results > 1
 
 ### Interfacing:

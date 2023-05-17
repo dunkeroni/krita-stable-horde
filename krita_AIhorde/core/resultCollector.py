@@ -109,31 +109,61 @@ class ResultCollector():
 		try:
 			qDebug("bufferToDB")
 			resultsDict = {}
-			for result in self.buffer:
+			for result in self.buffer["results"]:
 				node: Node = result[0]
 				nodeUID = node.uniqueId()
 				qDebug("node found: " + nodeUID.toString())
 				resultsDict[nodeUID.toString()] = {
 					"node": node,
-					"info": result[1],
+					"mask": result[1],
+					"bounds": result[2],
+					"info": result[3],
 					"UID": nodeUID
 				}
 			doc = Krita.instance().activeDocument()
 			root = doc.rootNode()
 			if id is None:
 				id = "Group " + str(len(self.DB))
-			qDebug("Creating group layer")
+			#qDebug("Creating group layer")
 			gn = doc.createGroupLayer(id)
-			qDebug("Adding group layer to root")
-			root.addChildNode(gn, None)
-			doc.setActiveNode(gn)
-			doc.waitForDone()
+			#qDebug("Adding group layer to root")
+			#root.addChildNode(gn, None)
+			#doc.setActiveNode(gn)
+			#doc.waitForDone()
+			self.DB[id] = {} #create new group in DB
+			self.DB[id]['groupLayer'] = gn.uniqueId() #store the group layer reference
+			self.DB[id]['index'] = 0 #set default index to first result
+			self.DB[id]['results'] = resultsDict
+
+			qDebug("Result buffer added to DB")
+			self.buffer = set() #clear the buffer for the next generation
+			self.groupSelector.addItem(id) #add the new group to the dropdown menu
+			self.groupSelector.setCurrentText(id) #set the dropdown menu to the new group
+			self.showOnlyIndex(0) #show only the first result
+			return
+			gn: GroupLayer = self.buffer["groupLayer"]
 			for result in resultsDict:
 				node = resultsDict[result]['node']
+				mask: Node = resultsDict[result]['mask']
+				if mask is not None:
+					xs, ys, ws, hs = resultsDict[result]["bounds"][0]
+					maskbytes = mask.pixelData(xs, ys, ws, hs)
+					maskImage = QImage(maskbytes.data(), ws, hs, QImage.Format_Grayscale8)
 				node.remove()
-				res = gn.addChildNode(node, None)
+				res = root.addChildNode(node, None)
 				if not res:
 					qDebug("Failed to add node to group")
+				if mask is not None:
+					#gn.addChildNode(mask, node)
+					thisMask = doc.createNode(node.name() +" Mask", "transparency_mask")
+					node.addChildNode(thisMask, None)
+					ptr = maskImage.bits()
+					ptr.setsize(maskImage.byteCount())
+					thisMask.setPixelData(QByteArray(ptr.asstring()), xs, ys, ws, hs)
+					#doc.setActiveNode(mask)
+					doc.waitForDone()
+					#Krita.instance().action('convert_to_transparency_mask').trigger()
+
 
 			self.DB[id] = {} #create new group in DB
 			self.DB[id]['groupLayer'] = gn.uniqueId() #store the group layer reference

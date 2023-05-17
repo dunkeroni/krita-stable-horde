@@ -120,7 +120,7 @@ def getEncodedImageFromBounds(bounds, inpainting = False, inpaintMode = 0):
     bytes = doc.pixelData(x, y, w, h)
     image = QImage(bytes.data(), w, h, QImage.Format_RGBA8888).rgbSwapped()
     if inpainting and inpaintMode != 3: #CHECKME: masking results is different in Comfy worker versions
-        mask.invertPixels(QImage.InvertRgba)
+        #mask.invertPixels(QImage.InvertRgba) #no longer required in comfy
         qDebug("Set alpha channel to mask layer")
     image = image.scaled(gw, gh, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
     qDebug("Upscaled image to %dx%d" % (gw, gh))

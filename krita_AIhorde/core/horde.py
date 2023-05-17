@@ -22,6 +22,7 @@ class Worker():
 		self.eventId = QEvent.registerEventType()
 
 	def displayGenerated(self, images):
+		qDebug("displayGenerated")
 		doc = Krita.instance().activeDocument()
 		groupId = "Group " + str(len(self.dialog.rescol.DB))
 		groupNode = doc.createGroupLayer(groupId)

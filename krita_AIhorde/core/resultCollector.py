@@ -223,8 +223,10 @@ class ResultCollector():
 			if i == newindex:
 				qDebug("Showing node: " + result['UID'].toString() + " at index " + str(i))
 				node.setVisible(True)
+				node.setCollapsed(False)
 			else:
 				node.setVisible(False)
+				node.setCollapsed(True)
 		doc.waitForDone()
 		doc.refreshProjection()
 	

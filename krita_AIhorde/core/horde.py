@@ -26,12 +26,13 @@ class Worker():
 		doc = Krita.instance().activeDocument()
 		groupId = "Group " + str(len(self.dialog.rescol.DB))
 		groupNode = doc.createGroupLayer(groupId)
+		qDebug("Created group " + groupId)
 		self.buffer["groupLayer"] = groupNode
 		self.buffer["results"] = []
+		qDebug("Adding group to root")
 		root = doc.rootNode()
 		root.addChildNode(groupNode, None)
 		doc.setActiveNode(groupNode)
-		doc.waitForDone()
 		for image in images:
 			seed = image["seed"]
 			if re.match("^https.*", image["img"]):
@@ -39,6 +40,7 @@ class Worker():
 			else:
 				bytes = base64.b64decode(image["img"])
 				bytes = QByteArray(bytes)
+			qDebug("Displaying image with seed " + str(seed))
 			node, mask = selectionHandler.putImageIntoBounds(bytes, self.bounds, seed, groupNode, self.initMask)
 			if node is not None:
 				self.buffer["results"].append([node, mask, self.bounds, {'seed': seed}]) #Buffer is List[List[node, node, dict]]
@@ -46,7 +48,7 @@ class Worker():
 		self.pushEvent(str(len(images)) + " images generated.")
 		utility.UpdateEvent(self.eventId, utility.UpdateEvent.TYPE_FINISHED)
 		self.pushEvent(self.buffer, utility.UpdateEvent.TYPE_RESULTS) #push nodes to result collector
-		self.buffer = [] #clear buffer
+		self.buffer = {} #clear buffer
 
 	def pushEvent(self, message, eventType = utility.UpdateEvent.TYPE_CHECKED):
 		#posts an event through a new UpdateEvent instance for the current multithreaded instance to provide status messages without crashing krita
@@ -67,12 +69,15 @@ class Worker():
 			return
 		if not data:
 			self.cancel("Error calling Horde. Are you connected to the internet?")
+			qDebug("Connection error")
 			return
 		if not data["is_possible"]:
 			self.cancel("Currently no worker available to generate your image. Please try a different model or lower resolution.")
+			qDebug("No worker available")
 			return
 		if self.checkCounter >= self.checkMax:
 			self.cancel("Generation Fault: Image generation timed out after " + (self.checkMax * self.CHECK_WAIT)/60 + " minutes. Please try it again later.")
+			qDebug("Generation timed out")
 			return
 		
 		#success - completed generation

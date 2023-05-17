@@ -113,15 +113,12 @@ def getEncodedImageFromBounds(bounds, inpainting = False, inpaintMode = 0):
         else:
             qDebug("Found inpainting mask")
             maskbytes = maskNode.pixelData(x, y, w, h)
-            mask = QImage(maskbytes.data(), w, h, QImage.Format_RGBA8888)
+            mask = QImage(maskbytes.data(), w, h, QImage.Format_RGBA8888).rgbSwapped()
             utility.deleteMaskNode()
             doc.waitForDone()
 
     bytes = doc.pixelData(x, y, w, h)
     image = QImage(bytes.data(), w, h, QImage.Format_RGBA8888).rgbSwapped()
-    if inpainting and inpaintMode != 3: #CHECKME: masking results is different in Comfy worker versions
-        #mask.invertPixels(QImage.InvertRgba) #no longer required in comfy
-        qDebug("Set alpha channel to mask layer")
     image = image.scaled(gw, gh, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
     qDebug("Upscaled image to %dx%d" % (gw, gh))
     bytes = QByteArray()
@@ -173,7 +170,6 @@ def putImageIntoBounds(bytes, bounds, nametag="new generation", groupNode = None
         resultNode: GroupLayer = doc.createGroupLayer(nametag + " result")
         root.addChildNode(resultNode, None)
         doc.setActiveNode(resultNode)
-        doc.waitForDone()
         node = doc.createNode("Stablehorde " + str(nametag), "paintLayer")
         resultNode.addChildNode(node, None)
         qDebug("node added: " + str(nametag))

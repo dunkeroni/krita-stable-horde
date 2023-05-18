@@ -42,11 +42,11 @@ Add Control Net
 Results interface in regular docker as its own tab.  
     ~~Dropdown list for result groups~~  
     ~~Buttons to iterate through current group~~  
-    Delete current result or delete all other results if desired  
-    Inpaint mask needs to be carried through to the results buffer  
-    Display generation info on currently selected result
+    ~~Delete current result or delete all other results if desired~~  
+    ~~Inpaint mask needs to be carried through to the results buffer~~  
+    ~~Display generation info on currently selected result~~  
 ~~Horde interactor needs to pass results into requestor library where they are saved.~~  
-Widget needs to switch to results tab when results are available and results > 1
+~~Widget needs to switch to results tab when results are available and results > 1~~  
 
 ### Interfacing:
 ~~Generate on Selection instead of whole file resolution~~  
@@ -65,3 +65,4 @@ Inpainting with some samplers (DDIM) causes a faulty request which errors on che
     This is a horde issue, not a plugin issue.  
     Workaround: use a different sampler.  
     Fix: Will add some restrictions to samplers in the future.  
+Results Collector does not gracefully handle users deleting nodes manually.  

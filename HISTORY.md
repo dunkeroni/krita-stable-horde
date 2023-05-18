@@ -1,6 +1,19 @@
 # History
 ## Krita Plugin 2.X
 
+### 2.0.4
+#### Changes:
+- Default Inpainting mode in the Experimental tab has been changed to Img2Img PostMask. This will be updated again when the Horde supports inpainting at low denoise. Until then, use Img2Img PostMask mode, and keep denoise under 0.3 to avoid visible seems and halos. For actual inpainting operations, change Denoise to 1 and use Img2Img DoubleMask.  
+#### Added Features:
+- Results are now structured into layer groups, and there is a Results tab to handle switching and deletions.  
+- For each Generation call, a Group will be created. It will contain all Result Groups.  
+- For each result of n images in the generation, a Result Group will be created. It will contain the Image and transparency Mask layers if applicable.  
+- Using the PREV/NEXT buttons is the preferred way to cycle through results. This will ensure that any overlapping transparency masks are properly hidden.  
+- The Results tab has a Delete button to remove the current Result from the group, as well as one to remove all other results and only keep the selected.  
+- Generation parameters are displayed in the results tab for the current result. Prompt is in the format "PROMPT ### NEGATIVE PROMPT". There is also seed and worker info in case you need to track down issues.  
+#### Known Issues:
+- Do not delete result nodes or their groups directly. Use the buttons in the Results tab. Otherwise you may get errors when cycling results later.  
+
 ### 2.0.3
 - Changed how version updates are checked. Now the version is only held in version.py, all other points refer to that file on local and remote locations.
 

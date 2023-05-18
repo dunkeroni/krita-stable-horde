@@ -22,27 +22,29 @@ def buildAdvancedTab(results, dialog):
     results['groupSelector'] = groupSelector
 
     #Previous and Next buttons
-    prevResult = QPushButton("<<<")
-    nextResult = QPushButton(">>>")
+    prevResult = QPushButton("PREV")
+    nextResult = QPushButton("NEXT")
     layout.addRow(prevResult, nextResult)
     results['prevResult'] = prevResult
     results['nextResult'] = nextResult
-
-    #Delete single button
-    deleteButton = QPushButton("Delete")
-    layout.addRow(deleteButton)
-    results['deleteButton'] = deleteButton
-
-    #Delete all others button
-    deleteAllButton = QPushButton("Delete All Others")
-    layout.addRow(deleteAllButton)
-    results['deleteAllButton'] = deleteAllButton
 
     #Generation Info box
     genInfo = QTextEdit()
     genInfo.setReadOnly(True)
     layout.addRow(genInfo)
     results['genInfo'] = genInfo
+
+    #Delete single button
+    deleteButton = QPushButton("Delete")
+    layout.addRow(deleteButton)
+    results['deleteButton'] = deleteButton
+    deleteButton.setStyleSheet("background-color:#890000;")
+
+    #Delete all others button
+    deleteAllButton = QPushButton("Delete All Others")
+    layout.addRow(deleteAllButton)
+    results['deleteAllButton'] = deleteAllButton
+    deleteAllButton.setStyleSheet("background-color:#890000;")
 
     tabResults.setLayout(layout)
     return tabResults

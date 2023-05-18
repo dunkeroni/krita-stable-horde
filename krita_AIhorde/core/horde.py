@@ -23,6 +23,7 @@ class Worker():
 
 	def displayGenerated(self, images):
 		qDebug("displayGenerated")
+		self.pushEvent("Displaying generated images... \nYou may hit Cancel or restart Krita if this gets stuck.")
 		doc = Krita.instance().activeDocument()
 		groupId = "Group " + str(len(self.dialog.rescol.DB))
 		groupNode = doc.createGroupLayer(groupId)
@@ -43,7 +44,11 @@ class Worker():
 			qDebug("Displaying image with seed " + str(seed))
 			node, mask = selectionHandler.putImageIntoBounds(bytes, self.bounds, seed, groupNode, self.initMask)
 			if node is not None:
-				self.buffer["results"].append([node, mask, self.bounds, {'seed': seed}]) #Buffer is List[List[node, node, dict]]
+				#create generation info
+				info = image.copy()
+				del info["img"] #don't need this any more
+				infostring = "Prompt:\n" + self.generationPrompt + "\n\nGeneration Params: " + str(self.generationParams) + "\nResult Info: " + str(info)
+				self.buffer["results"].append([node, mask, self.bounds, infostring]) #Buffer is List[List[node, node, List, dict]]
 
 		self.pushEvent(str(len(images)) + " images generated.")
 		utility.UpdateEvent(self.eventId, utility.UpdateEvent.TYPE_FINISHED)
@@ -115,6 +120,9 @@ class Worker():
 		self.initMask = None
 		data: dict = settings["payloadData"]
 		params: dict = data["params"]
+
+		self.generationPrompt = settings["payloadData"]["prompt"] #save for display info later
+		self.generationParams = params #save for display info later
 
 		self.bounds = selectionHandler.getI2Ibounds(settings["minSize"], settings["maxSize"])
 		[gw, gh] = self.bounds[2] #generation bounds already sized correctly and fit to multiple of 64

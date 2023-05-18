@@ -2,6 +2,8 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
+from ..misc import utility
+
 def addExperimentTab(tabs: QTabWidget, dialog):
     qDebug("Creating Experimental tab elements")
     experiment = {} #pointer to dictionary
@@ -27,7 +29,7 @@ def buildAdvancedTab(experiment, dialog):
     inpaintMode.addButton(premask, 1)
     inpaintMode.addButton(doublemask, 2)
     inpaintMode.addButton(rawmask, 3)
-    inpaintMode.buttons()[2].setChecked(True)
+    inpaintMode.buttons()[0].setChecked(True)
     layoutV = QVBoxLayout()
     for button in inpaintMode.buttons():
         layoutV.addWidget(button)

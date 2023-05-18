@@ -68,9 +68,11 @@ class ResultCollector():
 
 	def addBufferNode(self, node: Node, info: dict):
 		"""BUFFER FORMAT:
-		Buffer = [
-		[node, dict], [node, dict], ...
-		]"""
+		Buffer = {
+			"groupLayer": groupLayer: Node
+			"results": [[node: Node, mask: Node, bounds: List, info: Dict], [node, mask, bounds, info], ...]
+		}
+		"""
 		qDebug("addBufferNode")
 		#add node and info to the buffer as a tuple
 		self.buffer.append([node, info])
@@ -86,16 +88,20 @@ class ResultCollector():
 		"""DB FORMAT:
 		DB = {
 		"groupID1": {
-			"groupLayer": nodeUID,
+			"groupLayer": groupLayer,
 			"index": int,
 			"results": {
 				"nodeUID": {
 					"node": Node,
+					"mask": Node,
+					"bounds": List,
 					"info": dict,
 					"UID": nodeUID
 				},
 				"nodeUID": {
 					"node": Node,
+					"mask": Node,
+					"bounds": List,
 					"info": dict,
 					"UID": nodeUID
 				},
@@ -224,6 +230,7 @@ class ResultCollector():
 				qDebug("Showing node: " + result['UID'].toString() + " at index " + str(i))
 				node.setVisible(True)
 				node.setCollapsed(False)
+				self.genInfo.setText(str(result['info'])) #display generation info
 			else:
 				node.setVisible(False)
 				node.setCollapsed(True)
@@ -235,14 +242,20 @@ class ResultCollector():
 			qDebug("RESCOL ERROR: No results to get")
 			return
 		id, index, results = self.getRef()
-		for i, result in results.items():
+		if len(results) == 0:
+			qDebug("RESCOL ERROR: No results to delete")
+			return
+		for i, (k, result) in enumerate(results.items()):
 			if i == index:
-				node: Node = results[index]['node']
+				qDebug("Deleting node: " + result['UID'].toString() + " at index " + str(i))
+				node: Node = result['node']
 				node.remove()
-				del result
-		if index == len(results):
+				deletekey = k
+		del results[deletekey] #has to happen after the loop
+		if index == len(results): #fix index if we deleted the last result
 			index = 0
 		self.DB[id]['index'] = index
+		Krita.instance().activeDocument().waitForDone()
 		self.showOnlyIndex(index)
 
 	def deleteAllOthers(self):
@@ -251,10 +264,17 @@ class ResultCollector():
 			return
 		id, index, results = self.getRef()
 		doc = Krita.instance().activeDocument()
-		for i, result in enumerate(results):
-			node: Node = doc.nodeByUniqueID(result['UID'])
+		for i, (k, result) in enumerate(results.items()):
+			node: Node = result['node']
 			if i != index:
+				qDebug("Deleting node: " + result['UID'].toString() + " at index " + str(i))
 				node.remove()
+			else:
+				keepkey = k
+		for k in list(results.keys()):
+			if k != keepkey:
+				del results[k]
+		self.DB[id]['index'] = 0 #set index to 0
 		self.showOnlyIndex(0)
 	
 

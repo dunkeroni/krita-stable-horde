@@ -7,7 +7,7 @@ Please check HISTORY.md for the latest changes.
 ## Installation
 ### Krita
 
-The plugin has been tested in Krita 5.1.3
+The plugin has been tested in Krita 5.1.5
 
 **IMPORTANT:** If you are running Linux, please make sure, you have webp support for Qt5 installed, as this is the image format stablehorde uses. Execute the following command to check, if it's already supported: ```python -c "from PyQt5.Qt import *; print([bytes(x).decode('ascii') for x in QImageReader.supportedImageFormats()])"```. To install it, use ```sudo pacman -S qt5-imageformats``` (Arch) or ```sudo apt install qt5-image-formats-plugins``` (Debian).
 
@@ -21,6 +21,7 @@ The plugin has been tested in Krita 5.1.3
    - Linux: ```~/.local/share/krita/pykrita```  
    - MacOS: ```~/Library/Application Support/krita/pykrita```  
    (Linux and MacOS locations were hallucinated by an AI, those locations might not be real. If you know the correct locations, please let me know.)  
+   If you are on Windows, and you installed Krita normally, you can run CopyToAppdata.bat to copy the files automatically and remove any old version.
 
 3. Start Krita. Go to Settings > Configure Krita > Python Plugin Manager. You should see the "Krita AI Horde" plugin in the list. Enable it and restart Krita.  
 

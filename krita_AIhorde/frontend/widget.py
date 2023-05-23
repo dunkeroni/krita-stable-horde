@@ -90,6 +90,7 @@ class Dialog(QWidget):
 		self.requests: QLineEdit = self.user['requests']
 		self.contributions: QLineEdit = self.user['contributions']
 		self.refreshUserButton: QPushButton = self.user['refreshUserButton']
+		self.preferredWorkers: QLineEdit = self.user['preferredWorkers']
 
 		### EXPERIMENTAL ###
 		#Temporary settings that add extra functionality for testing: 0 = Img2Img PostMask, 1 = Img2Img PreMask, 2 = Img2Img DoubleMask, 3 = Inpaint Raw Mask
@@ -309,6 +310,10 @@ class Dialog(QWidget):
 			"shared": self.shareWithLAION.isChecked(),
 			"replacement_filter": True
 		}
+
+		#add preferred workers if not empty
+		if self.preferredWorkers.text() != "":
+			data["workers"] = [self.preferredWorkers.text()]
 
 		return data
 	

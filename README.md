@@ -21,7 +21,9 @@ The plugin has been tested in Krita 5.1.5
    - Linux: ```~/.local/share/krita/pykrita```  
    - MacOS: ```~/Library/Application Support/krita/pykrita```  
    (Linux and MacOS locations were hallucinated by an AI, those locations might not be real. If you know the correct locations, please let me know.)  
-   If you are on Windows, and you installed Krita normally, you can run CopyToAppdata.bat to copy the files automatically and remove any old version.
+   If you are on Windows, and you installed Krita normally, you can run CopyToAppdata.bat to copy the files automatically and remove any old version.  
+
+   For Scripts to be available on Linux, you may need to launch from terminal with **sudo krita**  
 
 3. Start Krita. Go to Settings > Configure Krita > Python Plugin Manager. You should see the "Krita AI Horde" plugin in the list. Enable it and restart Krita.  
 

@@ -28,6 +28,12 @@ def buildUserTab(user):
     layout.addRow("User ID", userID)
     user['userID'] = userID
 
+    #worker ids
+    workerIDs = QLineEdit()
+    workerIDs.setReadOnly(True)
+    layout.addRow("Worker IDs", workerIDs)
+    user['workerIDs'] = workerIDs
+
     #kudos
     kudos = QLineEdit()
     kudos.setReadOnly(True)

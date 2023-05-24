@@ -23,6 +23,8 @@ Add Control Net
 ## Interfacing:
 Auto-mask selection?  
     Currently a selection is required before switching to mask mode. Should not require.  
+  
+Add Tooltips to all buttons and options.  
 
 ## Kudos:
 Add kudos transfer (broke on last attempt)  

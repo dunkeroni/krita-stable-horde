@@ -28,6 +28,12 @@ def buildUserTab(user):
     layout.addRow("User ID", userID)
     user['userID'] = userID
 
+    #worker ids
+    workerIDs = QLineEdit()
+    workerIDs.setReadOnly(True)
+    layout.addRow("Worker IDs", workerIDs)
+    user['workerIDs'] = workerIDs
+
     #kudos
     kudos = QLineEdit()
     kudos.setReadOnly(True)
@@ -62,6 +68,11 @@ def buildUserTab(user):
     refreshUserButton = QPushButton("Refresh")
     layout.addRow(refreshUserButton)
     user['refreshUserButton'] = refreshUserButton
+
+    #preferred workers textbox
+    preferredWorkers = QLineEdit()
+    layout.addRow("Preferred Workers", preferredWorkers)
+    user['preferredWorkers'] = preferredWorkers
 
     #updateUserInfo() #populate actual values if they exist
 

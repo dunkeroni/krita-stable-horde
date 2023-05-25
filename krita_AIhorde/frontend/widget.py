@@ -6,7 +6,7 @@ import math
 
 from ..misc import utility, range_slider, kudos
 from ..core import hordeAPI, horde, resultCollector
-from ..frontend import basicTab, advancedTab, userTab, experimentTab, resultsTab
+from ..frontend import basicTab, advancedTab, userTab, experimentTab, resultsTab, tooltips
 
 class Dialog(QWidget):
 	def __init__(self):
@@ -38,6 +38,8 @@ class Dialog(QWidget):
 		#self.updateKudos()
 		self.refreshUser()
 
+		self.connectToolTips() #add tooltip text to all the UI elements
+
 		self.rescol = resultCollector.ResultCollector(self.results)
 		self.worker = horde.Worker(self) #needs dialog reference for threaded event messages
 
@@ -64,8 +66,8 @@ class Dialog(QWidget):
 		self.numImages: QSpinBox = self.basic['numImages']
 		self.steps: QSlider = self.basic['steps']
 		self.highResFix: QCheckBox = self.basic['highResFix']
-		self.prompt: QLineEdit = self.basic['prompt']
-		self.negativePrompt: QLineEdit = self.basic['negativePrompt']
+		self.prompt: QTextEdit = self.basic['prompt']
+		self.negativePrompt: QTextEdit = self.basic['negativePrompt']
 		self.postProcessing: QComboBox = self.basic['postProcessing']
 		self.facefixer_strength: QSlider = self.basic['facefixer_strength']
 		self.upscale: QComboBox = self.basic['upscale']
@@ -84,12 +86,14 @@ class Dialog(QWidget):
 		### User ###
 		self.apikey: QLineEdit = self.user['apikey']
 		self.userID: QLineEdit = self.user['userID']
+		self.workerIDs: QLineEdit = self.user['workerIDs']
 		self.kudos: QLineEdit = self.user['kudos']
 		self.trusted: QLineEdit = self.user['trusted']
 		self.concurrency: QLineEdit = self.user['concurrency']
 		self.requests: QLineEdit = self.user['requests']
 		self.contributions: QLineEdit = self.user['contributions']
 		self.refreshUserButton: QPushButton = self.user['refreshUserButton']
+		self.preferredWorkers: QLineEdit = self.user['preferredWorkers']
 
 		### EXPERIMENTAL ###
 		#Temporary settings that add extra functionality for testing: 0 = Img2Img PostMask, 1 = Img2Img PreMask, 2 = Img2Img DoubleMask, 3 = Inpaint Raw Mask
@@ -102,6 +106,15 @@ class Dialog(QWidget):
 		self.deleteButton: QPushButton = self.results['deleteButton']
 		self.deleteAllButton: QPushButton = self.results['deleteAllButton']
 		self.genInfo: QTextEdit = self.results['genInfo']
+
+	def connectToolTips(self):
+		allWidgets = {}
+		allWidgets.update(self.basic)
+		allWidgets.update(self.advanced)
+		allWidgets.update(self.user)
+		allWidgets.update(self.experiment)
+		allWidgets.update(self.results)
+		tooltips.addToolTips(allWidgets)
 
 	def connectFunctions(self):
 		#User button connections
@@ -310,6 +323,12 @@ class Dialog(QWidget):
 			"replacement_filter": True
 		}
 
+		#add preferred workers if not empty
+		if self.preferredWorkers.text() != "":
+			workerlist = self.preferredWorkers.text().split(",")
+			data["workers"] = workerlist
+			data["worker_blacklist"] = False
+
 		return data
 	
 	def updateKudos(self):
@@ -361,6 +380,7 @@ class Dialog(QWidget):
 		#update values from userInfo
 		if self.userInfo:
 			self.userID.setText(self.userInfo["username"])
+			self.workerIDs.setText(", ".join(self.userInfo["worker_ids"]))
 			self.kudos.setText(str(self.userInfo["kudos"]))
 			self.trusted.setText(str(self.userInfo["trusted"]))
 			self.concurrency.setText(str(self.userInfo["concurrency"]))

@@ -82,6 +82,7 @@ class Dialog(QWidget):
 		self.karras: QCheckBox = self.advanced['karras']
 		self.useRealInpaint: QCheckBox = self.advanced['useRealInpaint']
 		self.shareWithLAION: QCheckBox = self.advanced['shareWithLAION']
+		self.inpaintMode: QButtonGroup = self.advanced['inpaintMode']
 
 		### User ###
 		self.apikey: QLineEdit = self.user['apikey']
@@ -97,7 +98,7 @@ class Dialog(QWidget):
 
 		### EXPERIMENTAL ###
 		#Temporary settings that add extra functionality for testing: 0 = Img2Img PostMask, 1 = Img2Img PreMask, 2 = Img2Img DoubleMask, 3 = Inpaint Raw Mask
-		self.inpaintMode: QButtonGroup = self.experiment['inpaintMode']
+		#self.inpaintMode: QButtonGroup = self.experiment['inpaintMode']
 
 		### RESULTS ###
 		self.groupSelector: QComboBox = self.results['groupSelector']

@@ -29,7 +29,7 @@ def buildAdvancedTab(experiment, dialog):
     inpaintMode.addButton(premask, 1)
     inpaintMode.addButton(doublemask, 2)
     inpaintMode.addButton(rawmask, 3)
-    inpaintMode.buttons()[0].setChecked(True)
+    inpaintMode.buttons()[2].setChecked(True)
     layoutV = QVBoxLayout()
     for button in inpaintMode.buttons():
         layoutV.addWidget(button)

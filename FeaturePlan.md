@@ -11,6 +11,17 @@ Split Inpaint/Img2Img mode buttons and/or simplify so that state can be determin
 Track concurrency/kudos/active generations in status panel.  
     Move all update messages to the log view and keep current status organized.  
 
+## LoRA:
+Refresh LoRAs button  
+    Gather list of top 10GB of lora from civitai  
+    Add toggle widgets for all lora options  
+    show customizable trigger text when active  
+    show strength slider?
+    save active loras to settings  
+Add to favorites list?  
+Need to save cache of found loras in case Civitai is down.  
+    Default to cached version. Only reload if requested.
+
 ## Advanced:
 ~~CLIP skip~~  
     added, but appears to be broken on the horde right now.  
@@ -24,7 +35,7 @@ Add Control Net
 Auto-mask selection?  
     Currently a selection is required before switching to mask mode. Should not require.  
   
-Add Tooltips to all buttons and options.  
+~~Add Tooltips to all buttons and options.~~  
 
 ## Kudos:
 Add kudos transfer (broke on last attempt)  

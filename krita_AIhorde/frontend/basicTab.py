@@ -76,7 +76,8 @@ def buildBasicTab(basic, dialog):
 		models = hordeAPI.status_models()
 		#add to combobox
 		for Hordemodel in models:
-			model.addItem(Hordemodel["name"] + " (" + str(Hordemodel["count"]) + ")", Hordemodel["name"])
+			if Hordemodel["type"] == "image":
+				model.addItem(Hordemodel["name"] + " (" + str(Hordemodel["count"]) + ")", Hordemodel["name"])
 		model.setCurrentIndex(0)
 		layout.addRow("Model", model)
 		basic['model'] = model

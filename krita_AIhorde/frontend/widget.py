@@ -22,7 +22,7 @@ class Dialog(QWidget):
 		self.basic = basicTab.addBasicTab(tabs, self)
 		self.advanced = advancedTab.addAdvancedTab(tabs, self)
 		self.user = userTab.addUserTab(tabs) #doesn't need self because no sliders in user tab
-		self.experiment = experimentTab.addExperimentTab(tabs, self)
+		self.experiment, self.loraSettings = experimentTab.addExperimentTab(tabs, self)
 		self.results = resultsTab.addResultsTab(tabs, self)
 		self.layout.addWidget(tabs)
 		self.tabs = tabs

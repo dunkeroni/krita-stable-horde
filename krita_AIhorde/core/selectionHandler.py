@@ -9,6 +9,10 @@ from ..misc import utility
 def limitBounds(w, h, minSize, maxSize):
     qDebug("limitBounds")
     
+    if (w == minSize) and (h == minSize): #already at minimum size
+        qDebug("already at minimum size")
+        return [w, h, w, h]
+
     if min(w, h) < minSize: #correct to minimum size
         scaleFactor = minSize / (min(w, h))
         if w < h: #expand by width, increase height to next 64 multiple
@@ -114,6 +118,8 @@ def getEncodedImageFromBounds(bounds, inpainting = False, inpaintMode = 0):
             qDebug("Found inpainting mask")
             maskbytes = maskNode.pixelData(x, y, w, h)
             mask = QImage(maskbytes.data(), w, h, QImage.Format_RGBA8888).rgbSwapped()
+            mask = mask.convertToFormat(QImage.Format_RGB888)
+            mask = mask.scaled(gw, gh, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
             utility.deleteMaskNode()
             doc.waitForDone()
 
@@ -123,15 +129,16 @@ def getEncodedImageFromBounds(bounds, inpainting = False, inpaintMode = 0):
     qDebug("Upscaled image to %dx%d" % (gw, gh))
     bytes = QByteArray()
     buffer = QBuffer(bytes)
-    image.save(buffer, "WEBP")
+    image.save(buffer, "WEBP", 100)
     data = base64.b64encode(bytes.data())
     data = data.decode("ascii")
 
-    mbytes = QByteArray()
-    mbuffer = QBuffer(mbytes)
-    mask.save(mbuffer, "WEBP")
-    mdata = base64.b64encode(mbytes.data())
-    mdata = mdata.decode("ascii")
+    if mask is not None:
+        mbytes = QByteArray()
+        mbuffer = QBuffer(mbytes)
+        mask.save(mbuffer, "WEBP", 100)
+        mdata = base64.b64encode(mbytes.data())
+        mdata = mdata.decode("ascii")
     return data, mdata
 
 def getImg2ImgMask():

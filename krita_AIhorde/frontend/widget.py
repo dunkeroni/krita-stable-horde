@@ -150,6 +150,22 @@ class Dialog(QWidget):
 		self.apikey.setText(settings["apikey"])
 		self.shareWithLAION.setChecked(settings["shared"])
 
+	def getFirstFiveLoras(self):
+		loras = []
+		n = 0
+		for setting in self.loraSettings:
+			if setting.checkbox.isChecked():
+				loras.append({
+					"name": setting.name,
+					"model": setting.unetStrength.value()/10,
+					"clip": setting.textEncoderStrength.value()/10,
+					"inject_trigger": setting.trigger.text()
+				})
+				n += 1
+				if n == 5:
+					break
+		return loras
+
 	def generate(self, img2img = False, inpainting = False):
 		qDebug("Generating image from dialog call...")
 		doc = Krita.instance().activeDocument()
@@ -308,6 +324,7 @@ class Dialog(QWidget):
 			"facefixer_strength": self.facefixer_strength.value()/100,
 			"clip_skip": self.clip_skip.value(),
 			"n": self.numImages.value(),
+			"loras": self.getFirstFiveLoras()
 		}
 
 		data = {

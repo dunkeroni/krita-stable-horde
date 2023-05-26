@@ -136,7 +136,7 @@ class LoraSetting():
         #Add two strength sliders
         # Unet Strength
         unetStrength = QSlider(Qt.Orientation.Horizontal)
-        unetStrength.setRange(0, 20)
+        unetStrength.setRange(0, 10)
         unetStrength.setTickInterval(1)
         unetStrength.setValue(10)
         labelUnetStrength = QLabel(str(unetStrength.value()/10))
@@ -152,7 +152,7 @@ class LoraSetting():
 
         # Text Encoder Strength
         slider = QSlider(Qt.Orientation.Horizontal)
-        slider.setRange(0, 20)
+        slider.setRange(0, 10)
         slider.setTickInterval(1)
         slider.setValue(10)
         textEncoderStrength = slider
@@ -185,4 +185,10 @@ class LoraSetting():
         checkbox.stateChanged.connect(lambda: triggercontainer.setVisible(checkbox.isChecked()))
         checkbox.stateChanged.connect(lambda: UScontainer.setVisible(checkbox.isChecked()))
         checkbox.stateChanged.connect(lambda: CScontainer.setVisible(checkbox.isChecked()))
+
+        self.name = label.text()
+        self.checkbox = checkbox
+        self.trigger = lineEdit
+        self.unetStrength = unetStrength
+        self.textEncoderStrength = textEncoderStrength
 

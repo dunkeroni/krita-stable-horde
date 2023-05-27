@@ -121,11 +121,13 @@ def buildBasicTab(basic, dialog):
 
 		# Prompt
 		prompt = QTextEdit()
+		prompt.setAcceptRichText(False)
 		layout.addRow("Prompt", prompt)
 		basic['prompt'] = prompt
 
 		# Negative Prompt
 		negativePrompt = QTextEdit()
+		negativePrompt.setAcceptRichText(False)
 		layout.addRow("Negative Prompt", negativePrompt)
 		basic['negativePrompt'] = negativePrompt
 

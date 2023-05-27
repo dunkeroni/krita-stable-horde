@@ -162,4 +162,4 @@ class Worker():
 
 	def cancel(self, message="Generation canceled."):
 		self.cancelled = True
-		self.pushEvent(message, utility.UpdateEvent.TYPE_FINISHED)
+		self.pushEvent(message, utility.UpdateEvent.TYPE_INFO)

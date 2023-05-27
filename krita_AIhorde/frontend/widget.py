@@ -334,7 +334,7 @@ class Dialog(QWidget):
 			"nsfw": self.nsfw.isChecked(),
 			"trust_workers": False,
 			"slow_workers": True,
-			"censor_nsfw": False,
+			"censor_nsfw": not(self.nsfw.isChecked()),
 			"r2": True,
 			"models": [self.model.currentData()],
 			"shared": self.shareWithLAION.isChecked(),

@@ -78,6 +78,7 @@ def getLoraList():
             info["description"] = description
             info["rating"] = lora["stats"]["rating"]
             info["size"] = file["sizeKB"]
+            info["trainedWords"] = lora["modelVersions"][0]["trainedWords"]
 
             loraList.append(info)
             totalKB += file["sizeKB"]
@@ -121,6 +122,17 @@ class LoraSetting():
         lablecontainer.setLayout(Hlayout)
         self.layout.addWidget(lablecontainer)
         label.setToolTip(lora["description"])
+
+        #add lineEdit for trained words
+        lineEdit = QLineEdit(str(lora["trainedWords"]))
+        lineEdit.setReadOnly(True)
+        trainedWordslabel = QLabel("Trained Words:")
+        Hlayout = QHBoxLayout()
+        Hlayout.addWidget(trainedWordslabel)
+        Hlayout.addWidget(lineEdit)
+        trainedWordscontainer = QWidget()
+        trainedWordscontainer.setLayout(Hlayout)
+        self.layout.addWidget(trainedWordscontainer)
         
         #add lineEdit for custom trigger word, default to name
         lineEdit = QLineEdit(lora["name"])
@@ -169,6 +181,7 @@ class LoraSetting():
 
         #connect show/hide to checkbox
         #label.setVisible(False)
+        trainedWordscontainer.setVisible(False)
         triggercontainer.setVisible(False)
         UScontainer.setVisible(False)
         CScontainer.setVisible(False)
@@ -185,6 +198,7 @@ class LoraSetting():
         checkbox.stateChanged.connect(lambda: triggercontainer.setVisible(checkbox.isChecked()))
         checkbox.stateChanged.connect(lambda: UScontainer.setVisible(checkbox.isChecked()))
         checkbox.stateChanged.connect(lambda: CScontainer.setVisible(checkbox.isChecked()))
+        checkbox.stateChanged.connect(lambda: trainedWordscontainer.setVisible(checkbox.isChecked()))
 
         self.name = label.text()
         self.checkbox = checkbox

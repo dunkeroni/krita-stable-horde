@@ -13,10 +13,11 @@ Track concurrency/kudos/active generations in status panel.
 
 ## LoRA:
 Refresh LoRAs button  
-    Gather list of top 10GB of lora from civitai  
-    Add toggle widgets for all lora options  
-    show customizable trigger text when active  
-    show strength slider?
+    ~~Gather list of top 10GB of lora from civitai~~  
+    ~~Add toggles for all lora options~~  
+    ~~show customizable trigger text when active~~  
+      Does not work with current implementation of LoRA.
+    ~~show strength sliders~~
     save active loras to settings  
 Add to favorites list?  
 Need to save cache of found loras in case Civitai is down.  

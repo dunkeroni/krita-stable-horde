@@ -52,12 +52,7 @@ def limitBounds(w, h, minSize, maxSize):
         w1 = gw
         h1 = gh
     
-    qDebug("gw: " + str(gw) + " gh: " + str(gh))
-    if gw > gh: #increase longer side of selection to next increment
-        gw += 64
-    else:
-        gh += 64
-    
+    qDebug("gw: " + str(gw) + " gh: " + str(gh))    
     return [w1, h1, gw, gh]
 
 def getI2Ibounds(minSize=512, maxSize = 1536):

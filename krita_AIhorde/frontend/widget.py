@@ -22,7 +22,7 @@ class Dialog(QWidget):
 		self.basic = basicTab.addBasicTab(tabs, self)
 		self.advanced = advancedTab.addAdvancedTab(tabs, self)
 		self.user = userTab.addUserTab(tabs) #doesn't need self because no sliders in user tab
-		self.experiment = experimentTab.addExperimentTab(tabs, self)
+		self.experiment, self.loraSettings = experimentTab.addExperimentTab(tabs, self)
 		self.results = resultsTab.addResultsTab(tabs, self)
 		self.layout.addWidget(tabs)
 		self.tabs = tabs
@@ -82,6 +82,7 @@ class Dialog(QWidget):
 		self.karras: QCheckBox = self.advanced['karras']
 		self.useRealInpaint: QCheckBox = self.advanced['useRealInpaint']
 		self.shareWithLAION: QCheckBox = self.advanced['shareWithLAION']
+		self.inpaintMode: QButtonGroup = self.advanced['inpaintMode']
 
 		### User ###
 		self.apikey: QLineEdit = self.user['apikey']
@@ -97,7 +98,7 @@ class Dialog(QWidget):
 
 		### EXPERIMENTAL ###
 		#Temporary settings that add extra functionality for testing: 0 = Img2Img PostMask, 1 = Img2Img PreMask, 2 = Img2Img DoubleMask, 3 = Inpaint Raw Mask
-		self.inpaintMode: QButtonGroup = self.experiment['inpaintMode']
+		#self.inpaintMode: QButtonGroup = self.experiment['inpaintMode']
 
 		### RESULTS ###
 		self.groupSelector: QComboBox = self.results['groupSelector']
@@ -148,6 +149,22 @@ class Dialog(QWidget):
 		self.karras.setChecked(settings["karras"])
 		self.apikey.setText(settings["apikey"])
 		self.shareWithLAION.setChecked(settings["shared"])
+
+	def getFirstFiveLoras(self):
+		loras = []
+		n = 0
+		for setting in self.loraSettings:
+			if setting.checkbox.isChecked():
+				loras.append({
+					"name": setting.name,
+					"model": setting.unetStrength.value()/10,
+					"clip": setting.textEncoderStrength.value()/10,
+					"inject_trigger": setting.trigger.text()
+				})
+				n += 1
+				if n == 5:
+					break
+		return loras
 
 	def generate(self, img2img = False, inpainting = False):
 		qDebug("Generating image from dialog call...")
@@ -307,6 +324,7 @@ class Dialog(QWidget):
 			"facefixer_strength": self.facefixer_strength.value()/100,
 			"clip_skip": self.clip_skip.value(),
 			"n": self.numImages.value(),
+			"loras": self.getFirstFiveLoras()
 		}
 
 		data = {
@@ -316,7 +334,7 @@ class Dialog(QWidget):
 			"nsfw": self.nsfw.isChecked(),
 			"trust_workers": False,
 			"slow_workers": True,
-			"censor_nsfw": False,
+			"censor_nsfw": not(self.nsfw.isChecked()),
 			"r2": True,
 			"models": [self.model.currentData()],
 			"shared": self.shareWithLAION.isChecked(),

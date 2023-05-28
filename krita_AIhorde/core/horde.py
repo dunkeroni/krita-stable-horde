@@ -47,7 +47,7 @@ class Worker():
 				#create generation info
 				info = image.copy()
 				del info["img"] #don't need this any more
-				infostring = "Prompt:\n" + self.generationPrompt + "\n\nGeneration Params: " + str(self.generationParams) + "\nResult Info: " + str(info)
+				infostring = "Prompt:\n" + self.generationPrompt + "\n\nGeneration Params: " + str(self.generationParams) + "\nResult Info: " + str(info) + "\n\nImageURL: " + str(image["img"])
 				self.buffer["results"].append([node, mask, self.bounds, infostring]) #Buffer is List[List[node, node, List, dict]]
 
 		self.pushEvent(str(len(images)) + " images generated.")
@@ -162,4 +162,4 @@ class Worker():
 
 	def cancel(self, message="Generation canceled."):
 		self.cancelled = True
-		self.pushEvent(message, utility.UpdateEvent.TYPE_FINISHED)
+		self.pushEvent(message, utility.UpdateEvent.TYPE_INFO)

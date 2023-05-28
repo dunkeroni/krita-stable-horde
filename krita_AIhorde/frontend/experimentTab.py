@@ -9,7 +9,7 @@ def addExperimentTab(tabs: QTabWidget, dialog):
     qDebug("Creating Experimental tab elements")
     experiment = {} #pointer to dictionary
     experimentTab, loraSettings = buildLoRATab(experiment, dialog)
-    tabs.addTab(experimentTab, "Experimental")
+    tabs.addTab(experimentTab, "LoRA")
 
     return experiment, loraSettings #dictionary of tab elements
 
@@ -20,16 +20,19 @@ def buildLoRATab(experiment, dialog):
     tabExperiment.setFixedWidth(400)
     scrollArea = QScrollArea()
     layout = QVBoxLayout(scrollArea)
-    #set width to 350
-    #scrollArea.setMinimumWidth(350)
-    #scrollArea.setFixedWidth(400)
 
     #get loras button
-    getloras = QPushButton("Get LoRAs")
+    #getloras = QPushButton("Get LoRAs")
     #getLoRAS.clicked.connect(lambda: refreshLoRA())
-    layout.addWidget(getloras)
-    experiment["getLoRAS"] = getloras
-    loraSettings = refreshLoRA(layout)
+    #layout.addWidget(getloras)
+    #experiment["getLoRAS"] = getloras
+    loramessage = "PLEASE NOTE:\nLoRA is an experimental feature on the Horde right now.\nNot many workers are supporting it at this time.\nUntil it is more stable, you will likely only be able to generate \na few of the most popular models."
+    layout.addWidget(QLabel(loramessage))
+    try:
+        loraSettings = refreshLoRA(layout)
+    except urllib.error.URLError:
+        loraSettings = []
+        layout.addWidget(QLabel("Failed to get LoRAS from Civitai. Is the site down? Check your network connection and restart Krita."))
 
     tabExperiment.setLayout(layout)
     #add to scroll area
@@ -133,7 +136,11 @@ class LoraSetting():
         trainedWordscontainer = QWidget()
         trainedWordscontainer.setLayout(Hlayout)
         self.layout.addWidget(trainedWordscontainer)
-        
+        #tooltip
+        trainedWordsTooltip = "The words the model was trained on (if any).\nIf there are words in here, you can use them in your prompt to get better results.\nHover over the lora name to see if the civitai description has any other hints on use."
+        lineEdit.setToolTip(trainedWordsTooltip)
+        trainedWordslabel.setToolTip(trainedWordsTooltip)
+
         #add lineEdit for custom trigger word, default to name
         lineEdit = QLineEdit(lora["name"])
         triggerlabel = QLabel("Prompt Trigger:")
@@ -144,6 +151,10 @@ class LoraSetting():
         triggercontainer.setLayout(Hlayout)
         self.layout.addWidget(triggercontainer)
         lineEdit.setText(lora["name"])
+        #tooltip
+        promptTriggerTooltip = "YOU DO NOT NEED TO USE TRIGGER WORDS IN YOUR PROMPT.\n\n At this time, the setting appears to do nothing. I have included it in case that changes.\nYou can just enable and control loras from the checkbox."
+        lineEdit.setToolTip(promptTriggerTooltip)
+        triggerlabel.setToolTip(promptTriggerTooltip)
 
         #Add two strength sliders
         # Unet Strength
@@ -161,6 +172,10 @@ class LoraSetting():
         UScontainer = QWidget()
         UScontainer.setLayout(layoutH)
         self.layout.addWidget(UScontainer)
+        #tooltip
+        unetStrengthTooltip = "How strongly the LoRA will affect how the model generates the image."
+        unetStrength.setToolTip(unetStrengthTooltip)
+        l2US.setToolTip(unetStrengthTooltip)
 
         # Text Encoder Strength
         slider = QSlider(Qt.Orientation.Horizontal)
@@ -178,6 +193,17 @@ class LoraSetting():
         CScontainer = QWidget()
         CScontainer.setLayout(layoutH)
         self.layout.addWidget(CScontainer)
+        #tooltip
+        textEncoderStrengthTooltip = "How strongly the LoRA will affect how the model processes the prompt."
+        textEncoderStrength.setToolTip(textEncoderStrengthTooltip)
+        l2CS.setToolTip(textEncoderStrengthTooltip)
+
+        #reduce buffer spacing
+        trainedWordscontainer.layout().setContentsMargins(0, 0, 0, 0)
+        triggercontainer.layout().setContentsMargins(0, 0, 0, 0)
+        UScontainer.layout().setContentsMargins(0, 0, 0, 0)
+        CScontainer.layout().setContentsMargins(0, 0, 0, 0)
+        lablecontainer.layout().setContentsMargins(0, 0, 0, 0)
 
         #connect show/hide to checkbox
         #label.setVisible(False)

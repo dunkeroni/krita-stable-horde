@@ -315,7 +315,7 @@ class Dialog(QWidget):
 		post_process = post_processor + upscaler
 		params = {
 			"sampler_name": self.sampler.currentText(),
-			"cfg_scale": self.CFG.value(),
+			"cfg_scale": self.CFG.value()/4,
 			"steps": int(self.steps.value()),
 			"seed": self.seed.text(),
 			"hires_fix": self.highResFix.isChecked(),

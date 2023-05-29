@@ -82,6 +82,7 @@ def getLoraList():
             info["rating"] = lora["stats"]["rating"]
             info["size"] = file["sizeKB"]
             info["trainedWords"] = lora["modelVersions"][0]["trainedWords"]
+            info["id"] = lora["id"]
 
             loraList.append(info)
             totalKB += file["sizeKB"]
@@ -115,7 +116,7 @@ class LoraSetting():
         #add checkbox
         checkbox = QCheckBox()
         checkbox.setChecked(False)
-        label = QLabel(lora["name"])
+        label = QLabel(lora["name"] + " (" + str(lora["id"]) + ")")
         #add to layout
         Hlayout = QHBoxLayout()
         Hlayout.addWidget(checkbox) 
@@ -227,6 +228,7 @@ class LoraSetting():
         checkbox.stateChanged.connect(lambda: trainedWordscontainer.setVisible(checkbox.isChecked()))
 
         self.name = label.text()
+        self.id = lora["id"]
         self.checkbox = checkbox
         self.trigger = lineEdit
         self.unetStrength = unetStrength

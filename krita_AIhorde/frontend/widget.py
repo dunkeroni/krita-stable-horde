@@ -156,7 +156,7 @@ class Dialog(QWidget):
 		for setting in self.loraSettings:
 			if setting.checkbox.isChecked():
 				loras.append({
-					"name": setting.name,
+					"name": str(setting.id), #horde resolves ID, removes possibility of duplicate names
 					"model": setting.unetStrength.value()/10,
 					"clip": setting.textEncoderStrength.value()/10,
 					"inject_trigger": setting.trigger.text()

@@ -6,7 +6,7 @@ import math
 
 from ..misc import utility, range_slider, kudos
 from ..core import hordeAPI, horde, resultCollector
-from ..frontend import basicTab, advancedTab, userTab, experimentTab, resultsTab, tooltips
+from ..frontend import basicTab, advancedTab, userTab, loraTab, resultsTab, tooltips
 
 class Dialog(QWidget):
 	def __init__(self):
@@ -22,7 +22,7 @@ class Dialog(QWidget):
 		self.basic = basicTab.addBasicTab(tabs, self)
 		self.advanced = advancedTab.addAdvancedTab(tabs, self)
 		self.user = userTab.addUserTab(tabs) #doesn't need self because no sliders in user tab
-		self.experiment, self.loraSettings = experimentTab.addExperimentTab(tabs, self)
+		self.loraSettings = loraTab.addLoraTab(tabs, self)
 		self.results = resultsTab.addResultsTab(tabs, self)
 		self.layout.addWidget(tabs)
 		self.tabs = tabs
@@ -113,7 +113,7 @@ class Dialog(QWidget):
 		allWidgets.update(self.basic)
 		allWidgets.update(self.advanced)
 		allWidgets.update(self.user)
-		allWidgets.update(self.experiment)
+		#allWidgets.update(self.lora)
 		allWidgets.update(self.results)
 		tooltips.addToolTips(allWidgets)
 

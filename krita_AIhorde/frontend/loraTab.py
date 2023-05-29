@@ -2,22 +2,21 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
-from ..misc import utility
-import urllib.request, urllib.error, json, copy
+import urllib.request, urllib.error, json
 
-def addExperimentTab(tabs: QTabWidget, dialog):
+def addLoraTab(tabs: QTabWidget, dialog):
     qDebug("Creating Experimental tab elements")
-    experiment = {} #pointer to dictionary
-    experimentTab, loraSettings = buildLoRATab(experiment, dialog)
-    tabs.addTab(experimentTab, "LoRA")
+    loraWidgets = {} #pointer to dictionary
+    loraTab, loraSettings = buildLoRATab(loraWidgets, dialog)
+    tabs.addTab(loraTab, "LoRA")
 
-    return experiment, loraSettings #dictionary of tab elements
+    return loraSettings #dictionary of tab elements
 
 
-def buildLoRATab(experiment, dialog):
+def buildLoRATab(lora, dialog):
     # ==============Advanced Tab================
-    tabExperiment = QWidget()
-    tabExperiment.setFixedWidth(400)
+    tabLora = QWidget()
+    tabLora.setFixedWidth(400)
     scrollArea = QScrollArea()
     layout = QVBoxLayout(scrollArea)
     loramessage = "PLEASE NOTE:\nLoRA is an experimental feature on the Horde right now.\nNot many workers are supporting it at this time.\nUntil it is more stable, you will likely only be able to generate \na few of the most popular models."
@@ -28,10 +27,10 @@ def buildLoRATab(experiment, dialog):
         loraSettings = []
         layout.addWidget(QLabel("Failed to get LoRAS from Civitai. Is the site down? Check your network connection and restart Krita."))
 
-    tabExperiment.setLayout(layout)
+    tabLora.setLayout(layout)
     #add to scroll area
     scrollArea.setWidgetResizable(True)
-    scrollArea.setWidget(tabExperiment)
+    scrollArea.setWidget(tabLora)
 
     return scrollArea, loraSettings #tabExperiment
 

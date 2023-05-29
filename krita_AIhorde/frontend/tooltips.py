@@ -3,11 +3,12 @@ def getToolTips():
     toolTips = {}
     
     #basic
-    toolTips['priceCheck'] = "Check the kudos requirement to generate based on the current settings"
+    toolTips['priceCheck'] = "INNACURATE: HORDE HAS CHANGED TO AI MODEL, LOCAL CALCULATION IS OUT OF DATE\nCheck the kudos requirement to generate based on the current settings"
     toolTips['generateButton'] = "Generate an image, covering up the current image"
     toolTips['maskButton'] = "Create a mask layer to draw on"
     toolTips['img2imgButton'] = "Generate an image, using the current image and mask as input"
     toolTips['denoise_strength'] = "Adjust the strength of the denoiser. \nHigher values will change the image more, lower will stay closer to the original."
+    toolTips['CFG'] = "Higher values will make the result closer to the prompt, but may result in burnt images if too high. \nLower values will be more creative but can be blurry and less defined. \nLiterally this value affects how the prompt and unconditioned input (negative prompt if supplied) affects the result of each step."
     toolTips['SizeRange'] = "Images will always try to generate with the shorter side at least minSize pixels, but stopping if the larger side exceeds maxSize pixels."
     toolTips['seed'] = "The seed used to generate the image. \nLeave blank for a random seed. Enter a previous seed to generate the same image again, or a similar image with small changes to the settings."
     toolTips['model'] = "The model used to generate the image. \nThe number next to the model name denotes the number of workers in the horde that are currently offering that model."
@@ -24,7 +25,6 @@ def getToolTips():
     toolTips['cancelButton'] = "Cancel the current generation and enable all input fields again. \nUseful if a generation goes stale or some error sticks the UI."
     
     #advanced
-    toolTips['promptStrength'] = "Higher values will make the result closer to the prompt, but may result in burnt images if too high. \nLower values will be more creative but can be blurry and less defined. \nLiterally this value affects how the prompt and unconditioned input (negative prompt if supplied) affects the result of each step."
     toolTips['maxWait'] = "The maximum amount of time to wait for a result before giving up and canceling the request."
     toolTips['clip_skip'] = "Makes the prompt->embedding translation less precise by skipping the last n layers of the CLIP model. \nCan make results better or more consistent on some models (particularly ones heavily based on the illegal NovelAI leaked model)."
     toolTips['nsfw'] = "Enable NSFW results. Leaving False may cause some results to be filtered if NSFW content is detected."

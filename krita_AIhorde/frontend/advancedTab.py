@@ -18,21 +18,6 @@ def buildAdvancedTab(advanced, dialog):
     tabAdvanced = QWidget()
     layout = QFormLayout()
 
-    # Prompt Strength
-    slider = QSlider(Qt.Orientation.Horizontal, dialog)
-    slider.setRange(0, 20)
-    slider.setTickInterval(1)
-    promptStrength = slider
-    labelPromptStrength = QLabel(str(promptStrength.value()))
-    promptStrength.valueChanged.connect(lambda: labelPromptStrength.setText(str(promptStrength.value())))
-    layoutH = QHBoxLayout()
-    layoutH.addWidget(promptStrength)
-    layoutH.addWidget(labelPromptStrength)
-    container = QWidget()
-    container.setLayout(layoutH)
-    layout.addRow("CFG", container)
-    advanced['promptStrength'] = promptStrength
-
     # Max Wait
     slider = QSlider(Qt.Orientation.Horizontal, dialog)
     slider.setRange(1, 5)
@@ -102,6 +87,31 @@ def buildAdvancedTab(advanced, dialog):
         layoutV.addWidget(button)
     layout.addRow("Inpaint Mode", layoutV)
     advanced['inpaintMode'] = inpaintMode
+
+    # Post Processing combobox
+    postProcessing = QComboBox()
+    postProcessing_options = ['None', 'GFPGAN', 'CodeFormers', 'strip_background' ]
+    for postOption in postProcessing_options:
+        postProcessing.addItem(postOption)
+    postProcessing.setCurrentIndex(0)
+    layout.addRow("Post Processing", postProcessing)
+    advanced['postProcessing'] = postProcessing
+
+    # facefixer_strength
+    slider = QSlider(Qt.Orientation.Horizontal, dialog)
+    slider.setRange(0, 100)
+    slider.setTickInterval(1)
+    slider.setValue(75)
+    facefixer_strength = slider
+    labelfacefixer_strength = QLabel(str(facefixer_strength.value()/100))
+    facefixer_strength.valueChanged.connect(lambda: labelfacefixer_strength.setText(str(facefixer_strength.value()/100)))
+    layoutH = QHBoxLayout()
+    layoutH.addWidget(facefixer_strength)
+    layoutH.addWidget(labelfacefixer_strength)
+    container = QWidget()
+    container.setLayout(layoutH)
+    layout.addRow("Facefixer Strength", container)
+    advanced['facefixer_strength'] = facefixer_strength
 
     #checkUpdates button
     checkUpdates = QPushButton("Check for Updates")

@@ -47,8 +47,26 @@ def buildBasicTab(basic, dialog):
 		layoutH.addWidget(labeldenoise_strength)
 		container = QWidget()
 		container.setLayout(layoutH)
+		container.layout().setContentsMargins(0, 0, 0, 0)
 		layout.addRow("Denoising", container)
 		basic['denoise_strength'] = denoise_strength
+
+		# Prompt Strength
+		slider = QSlider(Qt.Orientation.Horizontal, dialog)
+		slider.setRange(0, 80)
+		slider.setTickInterval(1)
+		cfg = slider
+		cfg.setValue(28)
+		labelPromptStrength = QLabel(str(cfg.value()/4))
+		cfg.valueChanged.connect(lambda: labelPromptStrength.setText(str(cfg.value()/4)))
+		layoutH = QHBoxLayout()
+		layoutH.addWidget(cfg)
+		layoutH.addWidget(labelPromptStrength)
+		container = QWidget()
+		container.setLayout(layoutH)
+		container.layout().setContentsMargins(0, 0, 0, 0)
+		layout.addRow("CFG", container)
+		basic['CFG'] = cfg
 
 		#multi size range slider
 		SizeRange = range_slider.RangeSlider(Qt.Orientation.Horizontal, dialog)
@@ -62,8 +80,15 @@ def buildBasicTab(basic, dialog):
 		layoutH.addWidget(SizeRangeLabel)
 		container = QWidget()
 		container.setLayout(layoutH)
+		container.layout().setContentsMargins(0, 0, 0, 0)
 		layout.addRow("Size Range", container)
 		basic['SizeRange'] = SizeRange
+
+		#HighResFix
+		highResFix = QCheckBox()
+		highResFix.setChecked(False)
+		layout.addRow("High Resolution Fix",highResFix)
+		basic['highResFix'] = highResFix
 
 		# Seed
 		seed = QLineEdit()
@@ -90,13 +115,6 @@ def buildBasicTab(basic, dialog):
 		sampler.setCurrentIndex(3)
 		layout.addRow("Sampler", sampler)
 		basic['sampler'] = sampler
-
-		#number of images
-		numImages = QSpinBox()
-		numImages.setRange(1, 10)
-		numImages.setValue(1)
-		layout.addRow("Number of Images", numImages)
-		basic['numImages'] = numImages
 		
 		# Steps
 		slider = QSlider(Qt.Orientation.Horizontal, dialog)
@@ -110,14 +128,9 @@ def buildBasicTab(basic, dialog):
 		layoutH.addWidget(labelSteps)
 		container = QWidget()
 		container.setLayout(layoutH)
+		container.layout().setContentsMargins(0, 0, 0, 20)
 		layout.addRow("Steps", container)
 		basic['steps'] = steps
-		
-		#HighResFix
-		highResFix = QCheckBox()
-		highResFix.setChecked(False)
-		layout.addRow("High Resolution Fix",highResFix)
-		basic['highResFix'] = highResFix
 
 		# Prompt
 		prompt = QTextEdit()
@@ -131,30 +144,12 @@ def buildBasicTab(basic, dialog):
 		layout.addRow("Negative Prompt", negativePrompt)
 		basic['negativePrompt'] = negativePrompt
 
-		# Post Processing combobox
-		postProcessing = QComboBox()
-		postProcessing_options = ['None', 'GFPGAN', 'CodeFormers', 'strip_background' ]
-		for postOption in postProcessing_options:
-			postProcessing.addItem(postOption)
-		postProcessing.setCurrentIndex(0)
-		layout.addRow("Post Processing", postProcessing)
-		basic['postProcessing'] = postProcessing
-
-		# facefixer_strength
-		slider = QSlider(Qt.Orientation.Horizontal, dialog)
-		slider.setRange(0, 100)
-		slider.setTickInterval(1)
-		slider.setValue(75)
-		facefixer_strength = slider
-		labelfacefixer_strength = QLabel(str(facefixer_strength.value()/100))
-		facefixer_strength.valueChanged.connect(lambda: labelfacefixer_strength.setText(str(facefixer_strength.value()/100)))
-		layoutH = QHBoxLayout()
-		layoutH.addWidget(facefixer_strength)
-		layoutH.addWidget(labelfacefixer_strength)
-		container = QWidget()
-		container.setLayout(layoutH)
-		layout.addRow("Facefixer Strength", container)
-		basic['facefixer_strength'] = facefixer_strength
+		#number of images
+		numImages = QSpinBox()
+		numImages.setRange(1, 30)
+		numImages.setValue(1)
+		layout.addRow("Number of Images", numImages)
+		basic['numImages'] = numImages
 
 		# Upscaler combobox
 		upscale = QComboBox()

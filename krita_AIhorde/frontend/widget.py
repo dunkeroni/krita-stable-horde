@@ -59,23 +59,21 @@ class Dialog(QWidget):
 		self.maskButton: QPushButton = self.basic['maskButton']
 		self.img2imgButton: QPushButton = self.basic['img2imgButton']
 		self.denoise_strength: QSlider = self.basic['denoise_strength']
+		self.CFG: QSlider = self.basic['CFG']
 		self.SizeRange: range_slider.RangeSlider = self.basic['SizeRange']
+		self.highResFix: QCheckBox = self.basic['highResFix']
 		self.seed: QLineEdit = self.basic['seed']
 		self.model: QComboBox = self.basic['model']
 		self.sampler: QComboBox = self.basic['sampler']
-		self.numImages: QSpinBox = self.basic['numImages']
 		self.steps: QSlider = self.basic['steps']
-		self.highResFix: QCheckBox = self.basic['highResFix']
 		self.prompt: QTextEdit = self.basic['prompt']
 		self.negativePrompt: QTextEdit = self.basic['negativePrompt']
-		self.postProcessing: QComboBox = self.basic['postProcessing']
-		self.facefixer_strength: QSlider = self.basic['facefixer_strength']
+		self.numImages: QSpinBox = self.basic['numImages']
 		self.upscale: QComboBox = self.basic['upscale']
 		self.statusDisplay: QLabel = self.basic['statusDisplay']
 		self.cancelButton: QPushButton = self.basic['cancelButton']
 
 		### Advanced ###
-		self.CFG: QSlider = self.advanced['promptStrength'] #UPDATE THIS
 		self.maxWait: QSlider = self.advanced['maxWait']
 		self.clip_skip: QSlider = self.advanced['clip_skip']
 		self.nsfw: QCheckBox = self.advanced['nsfw']
@@ -83,6 +81,8 @@ class Dialog(QWidget):
 		self.useRealInpaint: QCheckBox = self.advanced['useRealInpaint']
 		self.shareWithLAION: QCheckBox = self.advanced['shareWithLAION']
 		self.inpaintMode: QButtonGroup = self.advanced['inpaintMode']
+		self.postProcessing: QComboBox = self.advanced['postProcessing']
+		self.facefixer_strength: QSlider = self.advanced['facefixer_strength']
 
 		### User ###
 		self.apikey: QLineEdit = self.user['apikey']
@@ -142,7 +142,7 @@ class Dialog(QWidget):
 		self.steps.setValue(settings["steps"])
 		self.prompt.setText(settings["prompt"])
 		self.negativePrompt.setText(settings["negativePrompt"])
-		self.CFG.setValue(settings["promptStrength"])
+		#self.CFG.setValue(settings["CFG"])
 		self.maxWait.setValue(settings["maxWait"])
 		self.clip_skip.setValue(settings["clip_skip"])
 		self.nsfw.setChecked(settings["nsfw"])
@@ -284,7 +284,7 @@ class Dialog(QWidget):
 			"upscale": self.upscale.currentText(),
 			"facefixer_strength": self.facefixer_strength.value()/100,
 			#advanced
-			"CFG": self.CFG.value(),
+			"CFG": self.CFG.value()/4,
 			"maxWait": self.maxWait.value(),
 			"clip_skip": self.clip_skip.value(),
 			"nsfw": self.nsfw.isChecked(),

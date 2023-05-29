@@ -17,10 +17,10 @@ def errorMessage(text, detailed):
 
 def readSettings():
    defaults = {
-      "denoise_strength": 30,
+      "denoise_strength": 30, #divides by 100
       "prompt": "",
       "negativePrompt": "",
-      "promptStrength": 7,
+      #"CFG": 28, #divides by 4
       "steps": 20,
       "seed": "",
       "nsfw": True,
@@ -53,7 +53,7 @@ def writeSettings(dialogSettings: dict):
       "denoise_strength": dialogSettings["denoise_strength"],
       "prompt": dialogSettings["prompt"],
       "negativePrompt": dialogSettings["negativePrompt"],
-      "promptStrength": dialogSettings["CFG"],
+      #"CFG": dialogSettings["CFG"],
       "steps": dialogSettings["steps"],
       "seed": dialogSettings["seed"],
       "nsfw": dialogSettings["nsfw"],

@@ -26,7 +26,7 @@ def getToolTips():
     
     #advanced
     toolTips['maxWait'] = "The maximum amount of time to wait for a result before giving up and canceling the request."
-    toolTips['clip_skip'] = "Makes the prompt->embedding translation less precise by skipping the last n layers of the CLIP model. \nCan make results better or more consistent on some models (particularly ones heavily based on the illegal NovelAI leaked model)."
+    toolTips['clip_skip'] = "Makes the prompt->embedding translation less precise by skipping the last layers of the CLIP model. \nCan make results better or more consistent on some models (particularly ones heavily based on the illegal NovelAI leaked model)."
     toolTips['nsfw'] = "Enable NSFW results. Leaving False may cause some results to be filtered if NSFW content is detected."
     toolTips['karras'] = "Magic. Improves generation with fewer steps."
     toolTips['useRealInpaint'] = "Force trigger Inpaint instead of preferred Img2Img mode. For debugging."

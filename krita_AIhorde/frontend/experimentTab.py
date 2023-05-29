@@ -20,12 +20,6 @@ def buildLoRATab(experiment, dialog):
     tabExperiment.setFixedWidth(400)
     scrollArea = QScrollArea()
     layout = QVBoxLayout(scrollArea)
-
-    #get loras button
-    #getloras = QPushButton("Get LoRAs")
-    #getLoRAS.clicked.connect(lambda: refreshLoRA())
-    #layout.addWidget(getloras)
-    #experiment["getLoRAS"] = getloras
     loramessage = "PLEASE NOTE:\nLoRA is an experimental feature on the Horde right now.\nNot many workers are supporting it at this time.\nUntil it is more stable, you will likely only be able to generate \na few of the most popular models."
     layout.addWidget(QLabel(loramessage))
     try:
@@ -100,8 +94,6 @@ def refreshLoRA(layout: QFormLayout):
     loraSettings = []
     for lora in loraList:
         loraSettings.append(LoraSetting(lora, layout))
-        #add to layout
-        #layout.addWidget(loraSettings[-1].layout)
 
     return loraSettings
 
@@ -207,21 +199,11 @@ class LoraSetting():
         lablecontainer.layout().setContentsMargins(0, 0, 0, 0)
 
         #connect show/hide to checkbox
-        #label.setVisible(False)
         trainedWordscontainer.setVisible(False)
         triggercontainer.setVisible(False)
         UScontainer.setVisible(False)
         CScontainer.setVisible(False)
         
-        #checkbox.stateChanged.connect(lambda: label.setVisible(checkbox.isChecked()))
-        """checkbox.stateChanged.connect(lambda: lineEdit.setVisible(checkbox.isChecked()))
-        checkbox.stateChanged.connect(lambda: triggerlabel.setVisible(checkbox.isChecked()))
-        checkbox.stateChanged.connect(lambda: unetStrength.setVisible(checkbox.isChecked()))
-        checkbox.stateChanged.connect(lambda: labelUnetStrength.setVisible(checkbox.isChecked()))
-        checkbox.stateChanged.connect(lambda: l2US.setVisible(checkbox.isChecked()))
-        checkbox.stateChanged.connect(lambda: textEncoderStrength.setVisible(checkbox.isChecked()))
-        checkbox.stateChanged.connect(lambda: labelTextEncoderStrength.setVisible(checkbox.isChecked()))
-        checkbox.stateChanged.connect(lambda: l2CS.setVisible(checkbox.isChecked()))"""
         checkbox.stateChanged.connect(lambda: triggercontainer.setVisible(checkbox.isChecked()))
         checkbox.stateChanged.connect(lambda: UScontainer.setVisible(checkbox.isChecked()))
         checkbox.stateChanged.connect(lambda: CScontainer.setVisible(checkbox.isChecked()))

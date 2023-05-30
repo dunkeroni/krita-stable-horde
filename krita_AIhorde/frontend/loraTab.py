@@ -203,7 +203,7 @@ class LoraSetting():
         UScontainer.setVisible(False)
         CScontainer.setVisible(False)
         
-        checkbox.stateChanged.connect(lambda: triggercontainer.setVisible(checkbox.isChecked()))
+        #.stateChanged.connect(lambda: triggercontainer.setVisible(checkbox.isChecked())) #hiding this until we need it for something in the future
         checkbox.stateChanged.connect(lambda: UScontainer.setVisible(checkbox.isChecked()))
         checkbox.stateChanged.connect(lambda: CScontainer.setVisible(checkbox.isChecked()))
         checkbox.stateChanged.connect(lambda: trainedWordscontainer.setVisible(checkbox.isChecked()))

@@ -77,7 +77,6 @@ def status_models(sort = True):
 	
 	return models
 
-
 def find_user(apikey = "0000000000"):
 	#get user info from stablehorde
 	#return user info if successful, empty dict if not

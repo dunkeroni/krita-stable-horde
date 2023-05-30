@@ -159,7 +159,7 @@ class Dialog(QWidget):
 					"name": str(setting.id), #horde resolves ID, removes possibility of duplicate names
 					"model": setting.unetStrength.value()/10,
 					"clip": setting.textEncoderStrength.value()/10,
-					"inject_trigger": setting.trigger.text()
+					#"inject_trigger": setting.trigger.text()
 				})
 				n += 1
 				if n == 5:
@@ -191,7 +191,7 @@ class Dialog(QWidget):
 			settings = self.getCurrentSettings()
 			settings["genImg2img"] = img2img
 			settings["genInpainting"] = inpainting
-			self.worker.generate(settings) #trigger threaded generation task
+			kudosCost = self.worker.generate(settings) #trigger threaded generation task
 			#self.worker.triggerGenerate.emit(settings) #trigger threaded generation task
 	
 	def img2imgGenerate(self):
@@ -338,7 +338,8 @@ class Dialog(QWidget):
 			"r2": True,
 			"models": [self.model.currentData()],
 			"shared": self.shareWithLAION.isChecked(),
-			"replacement_filter": True
+			"replacement_filter": True,
+			"dry_run": False
 		}
 
 		#add preferred workers if not empty

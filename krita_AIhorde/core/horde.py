@@ -139,6 +139,11 @@ class Worker():
 			else:
 				self.initMask = None
 			init, mask = selectionHandler.getEncodedImageFromBounds(self.bounds, inpainting, settings['inpaintMode'])#inpainting) inpainting removed for img2img workaround
+			#DEBUG: put init image into new layer
+			bytes = base64.b64decode(init)
+			bytes = QByteArray(bytes)
+			selectionHandler.putImageIntoBounds(bytes, self.bounds, "init")
+
 			data.update({"source_image": init})
 			data.update({"source_processing": "img2img"})
 			params.update({"hires_fix": False})

@@ -3,6 +3,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
 import urllib.request, urllib.error, json
+from ..core.loraSetting import LoraSetting
 
 def addLoraTab(tabs: QTabWidget, dialog):
     qDebug("Creating Experimental tab elements")
@@ -22,7 +23,7 @@ def buildLoRATab(lora, dialog):
     loramessage = "PLEASE NOTE:\nLoRA is an experimental feature on the Horde right now.\nNot many workers are supporting it at this time.\nUntil it is more stable, you will likely only be able to generate \na few of the most popular models."
     layout.addWidget(QLabel(loramessage))
     try:
-        loraSettings = refreshLoRA(layout)
+        loraSettings = getLoraList(layout)
     except urllib.error.URLError:
         loraSettings = []
         layout.addWidget(QLabel("Failed to get LoRAS from Civitai. Is the site down? Check your network connection and restart Krita."))
@@ -34,7 +35,17 @@ def buildLoRATab(lora, dialog):
 
     return scrollArea, loraSettings #tabExperiment
 
-def getLoraList():
+def getDefaultLoraList():
+    url = "https://raw.githubusercontent.com/Haidra-Org/AI-Horde-image-model-reference/main/lora.json"
+    try:
+        response = urllib.request.urlopen(urllib.request.Request(url=url, headers={'User-Agent': 'Mozilla/5.0'}))
+        defaultLoras = json.loads(response.read())
+    except:
+        return []
+    return defaultLoras #list of ID numbers
+
+
+def getLoraList(layout: QFormLayout):
     qDebug("Getting LoRAS from Civitai")
 
     #10GB limit
@@ -43,41 +54,32 @@ def getLoraList():
     n = 0
     loraList = []
     nextURL = "https://civitai.com/api/v1/models?types=LORA&sort=Highest%20Rated"
-    while (totalKB < targetKB) and (n < 50):
+    while (totalKB < targetKB) and (n < 10):
         n += 1 #escape condition
         qDebug(nextURL)
         response = urllib.request.urlopen(urllib.request.Request(url=nextURL, headers={'User-Agent': 'Mozilla/5.0'}))
         lorablob = json.loads(response.read())
         qDebug(str(len(lorablob["items"])) + " LoRAS")
-        for lora in lorablob["items"]: #list of dicts of dicts of dicts
-            info = {} #clear object reference
-            file = lora["modelVersions"][0]["files"][0]
-            #get filename left of . sparator
-            name = str(file["name"].split(".")[0])
-            #convert name to ascii
-            name = name.encode("ascii", "ignore").decode()
-            info["name"] = name
-            qDebug(info["name"])
-            description = lora["description"]
-            if description is None:
-                description = "No Description given."
-            #strip description to ascii
-            description = ''.join(i for i in description if ord(i)<128)
-            #replace HTML paragraphs with newline
-            description = description.replace("<p>", "\n")
-            #find and remove all substrings bewteen < and >, including the brackets
-            while "<" in description:
-                start = description.find("<")
-                end = description.find(">")
-                #remove text between < and >
-                description = description[:start] + description[end+1:]
-            info["description"] = description
-            info["rating"] = lora["stats"]["rating"]
-            info["size"] = file["sizeKB"]
-            info["trainedWords"] = lora["modelVersions"][0]["trainedWords"]
-            info["id"] = lora["id"]
 
-            loraList.append(info)
+        for lora in lorablob["items"]: #list of dicts of dicts of dicts
+            sett = LoraSetting(layout)
+
+            sett.name = lora["name"].encode("ascii", "ignore").decode()
+            file = lora["modelVersions"][0]["files"][0] #dict referencing latest version file
+            #get filename left of . separator
+            filename = str(file["name"].split(".")[0])
+            #convert name to ascii
+            sett.filename = filename.encode("ascii", "ignore").decode()
+            qDebug(sett.name)
+            sett.description = pruneDescription(lora["description"])
+            sett.rating = lora["stats"]["rating"]
+            sett.sizeKB = file["sizeKB"]
+            sett.trainedWords = lora["modelVersions"][0]["trainedWords"]
+            sett.id = str(lora["id"])
+
+            sett.build() #create widgets and add them to the layout
+            loraList.append(sett)
+
             totalKB += file["sizeKB"]
             if totalKB >= targetKB:
                 break
@@ -87,6 +89,23 @@ def getLoraList():
 
     return loraList
 
+def pruneDescription(description:str):
+    if description is None:
+        description = "No Description given."
+    #strip description to ascii
+    description = ''.join(i for i in description if ord(i)<128)
+    #replace HTML paragraphs with newline
+    description = description.replace("<p>", "\n")
+    #find and remove all substrings bewteen < and >, including the brackets
+    while "<" in description:
+        start = description.find("<")
+        end = description.find(">")
+        #remove text between < and >
+        description = description[:start] + description[end+1:]
+    
+    return description
+
+"""
 def refreshLoRA(layout: QFormLayout):
     qDebug("Refreshing LoRAS")
     loraList = getLoraList()
@@ -95,123 +114,5 @@ def refreshLoRA(layout: QFormLayout):
         loraSettings.append(LoraSetting(lora, layout))
 
     return loraSettings
-
-class LoraSetting():
-    def __init__(self, lora, layout: QFormLayout):
-        #self.widget = QWidget()
-        self.layout = layout
-        #self.layout.setWidget(self.widget)
-        self.lora = lora
-
-        qDebug("Adding controls for " + lora["name"])
-        #add checkbox
-        checkbox = QCheckBox()
-        checkbox.setChecked(False)
-        label = QLabel(lora["name"] + " (" + str(lora["id"]) + ")")
-        #add to layout
-        Hlayout = QHBoxLayout()
-        Hlayout.addWidget(checkbox) 
-        Hlayout.addWidget(label)
-        Hlayout.setAlignment(Qt.AlignLeft)
-        lablecontainer = QWidget()
-        lablecontainer.setLayout(Hlayout)
-        self.layout.addWidget(lablecontainer)
-        label.setToolTip(lora["description"])
-
-        #add lineEdit for trained words
-        lineEdit = QLineEdit(str(lora["trainedWords"]))
-        lineEdit.setReadOnly(True)
-        trainedWordslabel = QLabel("Trained Words:")
-        Hlayout = QHBoxLayout()
-        Hlayout.addWidget(trainedWordslabel)
-        Hlayout.addWidget(lineEdit)
-        trainedWordscontainer = QWidget()
-        trainedWordscontainer.setLayout(Hlayout)
-        self.layout.addWidget(trainedWordscontainer)
-        #tooltip
-        trainedWordsTooltip = "The words the model was trained on (if any).\nIf there are words in here, you can use them in your prompt to get better results.\nHover over the lora name to see if the civitai description has any other hints on use."
-        lineEdit.setToolTip(trainedWordsTooltip)
-        trainedWordslabel.setToolTip(trainedWordsTooltip)
-
-        #add lineEdit for custom trigger word, default to name
-        lineEdit = QLineEdit(lora["name"])
-        triggerlabel = QLabel("Prompt Trigger:")
-        Hlayout = QHBoxLayout()
-        Hlayout.addWidget(triggerlabel)
-        Hlayout.addWidget(lineEdit)
-        triggercontainer = QWidget()
-        triggercontainer.setLayout(Hlayout)
-        self.layout.addWidget(triggercontainer)
-        lineEdit.setText(lora["name"])
-        #tooltip
-        promptTriggerTooltip = "YOU DO NOT NEED TO USE TRIGGER WORDS IN YOUR PROMPT.\n\n At this time, the setting appears to do nothing. I have included it in case that changes.\nYou can just enable and control loras from the checkbox."
-        lineEdit.setToolTip(promptTriggerTooltip)
-        triggerlabel.setToolTip(promptTriggerTooltip)
-
-        #Add two strength sliders
-        # Unet Strength
-        unetStrength = QSlider(Qt.Orientation.Horizontal)
-        unetStrength.setRange(0, 10)
-        unetStrength.setTickInterval(1)
-        unetStrength.setValue(10)
-        labelUnetStrength = QLabel(str(unetStrength.value()/10))
-        unetStrength.valueChanged.connect(lambda: labelUnetStrength.setText(str(unetStrength.value()/10)))
-        l2US = QLabel("Unet Strength")
-        layoutH = QHBoxLayout()
-        layoutH.addWidget(l2US)
-        layoutH.addWidget(unetStrength)
-        layoutH.addWidget(labelUnetStrength)
-        UScontainer = QWidget()
-        UScontainer.setLayout(layoutH)
-        self.layout.addWidget(UScontainer)
-        #tooltip
-        unetStrengthTooltip = "How strongly the LoRA will affect how the model generates the image."
-        unetStrength.setToolTip(unetStrengthTooltip)
-        l2US.setToolTip(unetStrengthTooltip)
-
-        # Text Encoder Strength
-        slider = QSlider(Qt.Orientation.Horizontal)
-        slider.setRange(0, 10)
-        slider.setTickInterval(1)
-        slider.setValue(10)
-        textEncoderStrength = slider
-        labelTextEncoderStrength = QLabel(str(textEncoderStrength.value()/10))
-        textEncoderStrength.valueChanged.connect(lambda: labelTextEncoderStrength.setText(str(textEncoderStrength.value()/10)))
-        l2CS = QLabel("Text Encoder Strength")
-        layoutH = QHBoxLayout()
-        layoutH.addWidget(l2CS)
-        layoutH.addWidget(textEncoderStrength)
-        layoutH.addWidget(labelTextEncoderStrength)
-        CScontainer = QWidget()
-        CScontainer.setLayout(layoutH)
-        self.layout.addWidget(CScontainer)
-        #tooltip
-        textEncoderStrengthTooltip = "How strongly the LoRA will affect how the model processes the prompt."
-        textEncoderStrength.setToolTip(textEncoderStrengthTooltip)
-        l2CS.setToolTip(textEncoderStrengthTooltip)
-
-        #reduce buffer spacing
-        trainedWordscontainer.layout().setContentsMargins(0, 0, 0, 0)
-        triggercontainer.layout().setContentsMargins(0, 0, 0, 0)
-        UScontainer.layout().setContentsMargins(0, 0, 0, 0)
-        CScontainer.layout().setContentsMargins(0, 0, 0, 0)
-        lablecontainer.layout().setContentsMargins(0, 0, 0, 0)
-
-        #connect show/hide to checkbox
-        trainedWordscontainer.setVisible(False)
-        triggercontainer.setVisible(False)
-        UScontainer.setVisible(False)
-        CScontainer.setVisible(False)
-        
-        #.stateChanged.connect(lambda: triggercontainer.setVisible(checkbox.isChecked())) #hiding this until we need it for something in the future
-        checkbox.stateChanged.connect(lambda: UScontainer.setVisible(checkbox.isChecked()))
-        checkbox.stateChanged.connect(lambda: CScontainer.setVisible(checkbox.isChecked()))
-        checkbox.stateChanged.connect(lambda: trainedWordscontainer.setVisible(checkbox.isChecked()))
-
-        self.name = label.text()
-        self.id = lora["id"]
-        self.checkbox = checkbox
-        self.trigger = lineEdit
-        self.unetStrength = unetStrength
-        self.textEncoderStrength = textEncoderStrength
+    """
 

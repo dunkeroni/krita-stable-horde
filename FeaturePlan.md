@@ -51,3 +51,4 @@ Inpainting with some samplers (DDIM) causes a faulty request which errors on che
     Workaround: use a different sampler.  
     Fix: Will add some restrictions to samplers in the future.  
 Results Collector does not gracefully handle users deleting nodes manually.  
+Crashes if running img2img where the selection area overlaps the edges of the document  

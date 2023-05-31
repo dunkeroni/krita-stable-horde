@@ -326,6 +326,8 @@ class Dialog(QWidget):
 			"n": self.numImages.value(),
 			"loras": self.getFirstFiveLoras()
 		}
+		if params["loras"] == []: #not sure if this is necessary, worker was being funky one day
+			del params["loras"]
 
 		data = {
 			#append negative prompt only if it is not empty

@@ -13,6 +13,7 @@ Can also generate from swagger codegen for python, but it's huge and not really 
 
 API_ROOT = "https://aihorde.net/api/v2/"
 BACKUP_ROOT = "https://stablehorde.net/api/v2/"
+LORA_LIST = "https://raw.githubusercontent.com/Haidra-Org/AI-Horde-image-model-reference/main/lora.json"
 root = API_ROOT
 try:
 	response = urllib.request.urlopen(urllib.request.Request(url=root + "status/heartbeat", headers={'User-Agent': 'Mozilla/5.0'}))
@@ -32,7 +33,7 @@ def standardConnection(req: urllib.request.Request):
 	try:
 		response = urllib.request.urlopen(req)
 	except urllib.error.URLError as e:
-		utility.errorMessage("Horde Connection Error", str(e.reason) + "\n Check your internet connection and try again.")
+		utility.errorMessage("Connection Error", str(e.reason) + "\n\nCheck your internet connection and try again.")
 		response = None
 		
 	try:
@@ -40,6 +41,10 @@ def standardConnection(req: urllib.request.Request):
 		return result
 	except:
 		return None
+
+
+
+
 
 def pullImage(imageURL):
 	try:
@@ -250,4 +255,3 @@ def generate_status(id):
 		return {}
 	
 	return jobInfo
-

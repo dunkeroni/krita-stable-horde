@@ -43,9 +43,6 @@ def standardConnection(req: urllib.request.Request):
 		return None
 
 
-
-
-
 def pullImage(imageURL):
 	try:
 		response = urllib.request.urlopen(imageURL["img"])
@@ -71,7 +68,7 @@ def status_models(sort = True):
 		}
 	]"""
 	
-	request = urllib.request.Request(root + "status/models")
+	request = urllib.request.Request(root + "status/models", method="GET")
 	models = standardConnection(request)
 	if models is None:
 		return []
@@ -149,7 +146,7 @@ def find_user(apikey = "0000000000"):
 	
 	url = root + "find_user"
 	headers = {"Content-Type": "application/json", "Accept": "application/json", "apikey": apikey}
-	request = urllib.request.Request(url=url, headers=headers)
+	request = urllib.request.Request(url=url, headers=headers, method="GET")
 	userInfo = standardConnection(request)
 	if userInfo is None:
 		return {}
@@ -176,7 +173,7 @@ def generate_async(data, apikey = "0000000000"):
 	url = root + "generate/async"
 	headers = {"Content-Type": "application/json", "Accept": "application/json", "apikey": apikey, "Client-Agent": CLIENT_AGENT}
 
-	request = urllib.request.Request(url=url, data=data, headers=headers)
+	request = urllib.request.Request(url=url, data=data, headers=headers, method="POST")
 	jobInfo = standardConnection(request)
 
 	if jobInfo is None:
@@ -206,7 +203,7 @@ def generate_check(id):
 	"message": "string"
 	}
 	"""
-	request = urllib.request.Request(url = root + "generate/check/" + id)
+	request = urllib.request.Request(url = root + "generate/check/" + id, method="GET")
 	jobInfo = standardConnection(request)
 	if jobInfo is None:
 		return {}
@@ -249,7 +246,7 @@ def generate_status(id):
 	}
 	"""
 	
-	request = urllib.request.Request(url = root + "generate/status/" + id)
+	request = urllib.request.Request(url = root + "generate/status/" + id, method="GET")
 	jobInfo = standardConnection(request)
 	if jobInfo is None:
 		return {}

@@ -33,7 +33,7 @@ def standardConnection(req: urllib.request.Request):
 	try:
 		response = urllib.request.urlopen(req)
 	except urllib.error.URLError as e:
-		utility.errorMessage("Connection Error", str(e.reason) + "\n\nCheck your internet connection and try again.")
+		utility.errorMessage("Horde Error", str(e.reason))
 		response = None
 		
 	try:
@@ -252,3 +252,30 @@ def generate_status(id):
 		return {}
 	
 	return jobInfo
+
+def transferKudos(apikey, username, amount):
+	#transfer kudos to another user
+	"""Response Format:
+	Success:
+	{"transferred": integer}
+	Failure: 
+	{"message": "string"}
+	"""
+	url = root + "kudos/transfer"
+	data = {"username": username, "amount": int(amount)}
+	qDebug(str(data))
+	data = json.dumps(data).encode("utf-8") #format for sending request
+	headers = {"Content-Type": "application/json", "Accept": "application/json", "apikey": apikey, "Client-Agent": CLIENT_AGENT}
+	request = urllib.request.Request(url=url, data=data, headers=headers, method="POST")
+	jobInfo = standardConnection(request)
+
+	if jobInfo is None:
+		#utility.errorMessage("Failure", "Could not Send kudos due to an unknown parsing error")
+		return
+
+	if "transferred" in jobInfo:
+		qDebug("Kudos transfered")
+		utility.errorMessage("Success", "Kudos transfered successfully \nAmmount: " + str(jobInfo["transferred"]))
+	else:
+		qDebug("Kudos transfer failed")
+		utility.errorMessage("Failure", jobInfo["message"])

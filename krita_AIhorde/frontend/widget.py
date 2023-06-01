@@ -95,6 +95,9 @@ class Dialog(QWidget):
 		self.contributions: QLineEdit = self.user['contributions']
 		self.refreshUserButton: QPushButton = self.user['refreshUserButton']
 		self.preferredWorkers: QLineEdit = self.user['preferredWorkers']
+		self.transferUserName: QLineEdit = self.user['transferUserName']
+		self.transferKudosAmount: QLineEdit = self.user['transferKudosAmount']
+		self.transferKudosButton: QPushButton = self.user['transferKudosButton']
 
 		### EXPERIMENTAL ###
 		#Temporary settings that add extra functionality for testing: 0 = Img2Img PostMask, 1 = Img2Img PreMask, 2 = Img2Img DoubleMask, 3 = Inpaint Raw Mask
@@ -124,6 +127,7 @@ class Dialog(QWidget):
 		self.img2imgButton.clicked.connect(self.img2imgGenerate)
 		self.cancelButton.clicked.connect(self.reject)
 		self.refreshUserButton.clicked.connect(self.refreshUser)
+		self.transferKudosButton.clicked.connect(self.transferKudos)
 
 		#kudos update connections
 		self.priceCheck.clicked.connect(self.updateKudos)
@@ -408,6 +412,25 @@ class Dialog(QWidget):
 			self.requests.setText(str(self.userInfo["records"]["request"]["image"]))
 			self.contributions.setText(str(self.userInfo["records"]["fulfillment"]["image"]))
 	
+	def transferKudos(self):
+		qDebug("Transferring kudos")
+		#make sure ammount is a number
+		try:
+			amount = abs(int(self.transferKudosAmount.text()))
+		except ValueError:
+			utility.errorMessage("Invalid amount.", "Please enter a number.")
+			return
+		#make sure targetUsername is not empty
+		targetUsername = self.transferUserName.text()
+		if targetUsername == "":
+			utility.errorMessage("Invalid username.", "Please enter a username.")
+			return
+		#make sure targetUsername is not the same as current username
+		if targetUsername == self.userID.text():
+			utility.errorMessage("Invalid username.", "You cannot send kudos to yourself.")
+			return
+		hordeAPI.transferKudos(self.apikey.text(), targetUsername, amount)
+
 		#override
 	def customEvent(self, ev):
 		if ev.type() == self.worker.eventId:

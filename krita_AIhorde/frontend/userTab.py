@@ -74,6 +74,22 @@ def buildUserTab(user):
     layout.addRow("Preferred Workers", preferredWorkers)
     user['preferredWorkers'] = preferredWorkers
 
+    #transfer kudos targetUserName
+    layout.addRow(QLabel("\n\nTransfer Kudos to another user:\n[Note: May take several minutes to update kudos amount]"))
+    transferUserName = QLineEdit()
+    layout.addRow("Transfer Kudos To", transferUserName)
+    user['transferUserName'] = transferUserName
+
+    #transfer kudos amount
+    transferKudosAmount = QLineEdit()
+    layout.addRow("Transfer Kudos Amount", transferKudosAmount)
+    user['transferKudosAmount'] = transferKudosAmount
+
+    #transfer kudos button
+    transferKudosButton = QPushButton("Transfer Kudos")
+    layout.addRow(transferKudosButton)
+    user['transferKudosButton'] = transferKudosButton
+
     #updateUserInfo() #populate actual values if they exist
 
     tabUser.setLayout(layout)

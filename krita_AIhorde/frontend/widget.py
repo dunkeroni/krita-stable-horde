@@ -137,18 +137,22 @@ class Dialog(QWidget):
 		self.shareWithLAION.stateChanged.connect(self.updateKudos)
 
 	def applyLoadedSettings(self, settings):
-		self.denoise_strength.setValue(int(settings["denoise_strength"]*100))
-		self.seed.setText(settings["seed"])
-		self.steps.setValue(settings["steps"])
-		self.prompt.setText(settings["prompt"])
-		self.negativePrompt.setText(settings["negativePrompt"])
-		#self.CFG.setValue(settings["CFG"])
-		self.maxWait.setValue(settings["maxWait"])
-		self.clip_skip.setValue(settings["clip_skip"])
-		self.nsfw.setChecked(settings["nsfw"])
-		self.karras.setChecked(settings["karras"])
-		self.apikey.setText(settings["apikey"])
-		self.shareWithLAION.setChecked(settings["shared"])
+		try:
+			self.denoise_strength.setValue(int(settings["denoise_strength"]*100))
+			self.seed.setText(settings["seed"])
+			self.steps.setValue(settings["steps"])
+			self.prompt.setText(settings["prompt"])
+			self.negativePrompt.setText(settings["negativePrompt"])
+			#self.CFG.setValue(settings["CFG"])
+			self.maxWait.setValue(settings["maxWait"])
+			self.clip_skip.setValue(settings["clip_skip"])
+			self.nsfw.setChecked(settings["nsfw"])
+			self.karras.setChecked(settings["karras"])
+			self.apikey.setText(settings["apikey"])
+			self.shareWithLAION.setChecked(settings["shared"])
+		except Exception as ex:
+			qDebug("Failed to load previous settings. Some fields may be blank\n" + str(ex))
+
 
 	def getFirstFiveLoras(self):
 		loras = []

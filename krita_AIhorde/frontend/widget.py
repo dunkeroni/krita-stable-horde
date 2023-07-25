@@ -6,11 +6,15 @@ import math
 
 from ..misc import utility, range_slider, kudos
 from ..core import hordeAPI, horde, resultCollector
-from ..frontend import basicTab, advancedTab, userTab, experimentTab, resultsTab, tooltips
+from ..frontend import basicTab, advancedTab, userTab, loraTab, resultsTab, tooltips
 
 class Dialog(QWidget):
 	def __init__(self):
 		super().__init__()
+		self.kudoscountdown = QTimer(self)
+		self.kudoscountdown.setSingleShot(True)
+		self.kudoscountdown.setInterval(2000)
+		self.kudoscountdown.timeout.connect(self.checkKudos)
 
 		self.maskMode = False
 
@@ -22,7 +26,7 @@ class Dialog(QWidget):
 		self.basic = basicTab.addBasicTab(tabs, self)
 		self.advanced = advancedTab.addAdvancedTab(tabs, self)
 		self.user = userTab.addUserTab(tabs) #doesn't need self because no sliders in user tab
-		self.experiment, self.loraSettings = experimentTab.addExperimentTab(tabs, self)
+		self.loraSettings = loraTab.addLoraTab(tabs, self)
 		self.results = resultsTab.addResultsTab(tabs, self)
 		self.layout.addWidget(tabs)
 		self.tabs = tabs
@@ -95,6 +99,9 @@ class Dialog(QWidget):
 		self.contributions: QLineEdit = self.user['contributions']
 		self.refreshUserButton: QPushButton = self.user['refreshUserButton']
 		self.preferredWorkers: QLineEdit = self.user['preferredWorkers']
+		self.transferUserName: QLineEdit = self.user['transferUserName']
+		self.transferKudosAmount: QLineEdit = self.user['transferKudosAmount']
+		self.transferKudosButton: QPushButton = self.user['transferKudosButton']
 
 		### EXPERIMENTAL ###
 		#Temporary settings that add extra functionality for testing: 0 = Img2Img PostMask, 1 = Img2Img PreMask, 2 = Img2Img DoubleMask, 3 = Inpaint Raw Mask
@@ -109,11 +116,11 @@ class Dialog(QWidget):
 		self.genInfo: QTextEdit = self.results['genInfo']
 
 	def connectToolTips(self):
-		allWidgets = {}
+		allWidgets = {} #clear AllWidgets dictionary and add all the widgets from the tabs
 		allWidgets.update(self.basic)
 		allWidgets.update(self.advanced)
 		allWidgets.update(self.user)
-		allWidgets.update(self.experiment)
+		#allWidgets.update(self.lora)
 		allWidgets.update(self.results)
 		tooltips.addToolTips(allWidgets)
 
@@ -124,10 +131,11 @@ class Dialog(QWidget):
 		self.img2imgButton.clicked.connect(self.img2imgGenerate)
 		self.cancelButton.clicked.connect(self.reject)
 		self.refreshUserButton.clicked.connect(self.refreshUser)
+		self.transferKudosButton.clicked.connect(self.transferKudos)
 
 		#kudos update connections
 		self.priceCheck.clicked.connect(self.updateKudos)
-		self.denoise_strength.valueChanged.connect(self.updateKudos)
+		#self.denoise_strength.valueChanged.connect(self.updateKudos) #No longer seems to affect kudos
 		self.SizeRange.sliderMoved.connect(self.updateKudos)
 		self.sampler.currentTextChanged.connect(self.updateKudos)
 		self.numImages.valueChanged.connect(self.updateKudos)
@@ -137,18 +145,21 @@ class Dialog(QWidget):
 		self.shareWithLAION.stateChanged.connect(self.updateKudos)
 
 	def applyLoadedSettings(self, settings):
-		self.denoise_strength.setValue(int(settings["denoise_strength"]*100))
-		self.seed.setText(settings["seed"])
-		self.steps.setValue(settings["steps"])
-		self.prompt.setText(settings["prompt"])
-		self.negativePrompt.setText(settings["negativePrompt"])
-		#self.CFG.setValue(settings["CFG"])
-		self.maxWait.setValue(settings["maxWait"])
-		self.clip_skip.setValue(settings["clip_skip"])
-		self.nsfw.setChecked(settings["nsfw"])
-		self.karras.setChecked(settings["karras"])
-		self.apikey.setText(settings["apikey"])
-		self.shareWithLAION.setChecked(settings["shared"])
+		try:
+			self.denoise_strength.setValue(int(settings["denoise_strength"]*100))
+			self.seed.setText(settings["seed"])
+			self.steps.setValue(settings["steps"])
+			self.prompt.setText(settings["prompt"])
+			self.negativePrompt.setText(settings["negativePrompt"])
+			#self.CFG.setValue(settings["CFG"])
+			self.maxWait.setValue(settings["maxWait"])
+			self.clip_skip.setValue(settings["clip_skip"])
+			self.nsfw.setChecked(settings["nsfw"])
+			self.karras.setChecked(settings["karras"])
+			self.apikey.setText(settings["apikey"])
+			self.shareWithLAION.setChecked(settings["shared"])
+		except Exception as ex:
+			qDebug("Failed to load previous settings. Some fields may be blank\n" + str(ex))
 
 	def getFirstFiveLoras(self):
 		loras = []
@@ -159,14 +170,14 @@ class Dialog(QWidget):
 					"name": str(setting.id), #horde resolves ID, removes possibility of duplicate names
 					"model": setting.unetStrength.value()/10,
 					"clip": setting.textEncoderStrength.value()/10,
-					"inject_trigger": setting.trigger.text()
+					#"inject_trigger": setting.trigger.text()
 				})
 				n += 1
 				if n == 5:
 					break
 		return loras
 
-	def generate(self, img2img = False, inpainting = False):
+	def generate(self, img2img = False, inpainting = False, dryrun = False):
 		qDebug("Generating image from dialog call...")
 		doc = Krita.instance().activeDocument()
 
@@ -184,19 +195,21 @@ class Dialog(QWidget):
 			return
 		else:
 			utility.writeSettings(self.getCurrentSettings())
-			self.setEnabledStatus(False)
+			self.setEnabledStatus(dryrun) #False: locks the UI when generating, True keeps unlocked when in dryrun
 			self.refreshUser() #doesn't work later in threaded instances, so might as well do it early
 			self.statusDisplay.setText("Waiting for generated image...")
 
 			settings = self.getCurrentSettings()
 			settings["genImg2img"] = img2img
 			settings["genInpainting"] = inpainting
-			self.worker.generate(settings) #trigger threaded generation task
+			settings["payloadData"]["dry_run"] = dryrun #override for kudos check
+			kudosCost = self.worker.generate(settings) #trigger threaded generation task
+			return kudosCost
 			#self.worker.triggerGenerate.emit(settings) #trigger threaded generation task
 	
 	def img2imgGenerate(self):
 		if Krita.instance().activeDocument().selection() is None:
-			utility.errorMessage("Make a selection.", "Please select a region of the document before enaging Img2Img mode.")
+			utility.errorMessage("Make a selection.", "Select a region of the document before enaging Img2Img mode.")
 			return
 		self.generate(True, self.maskMode)
 		self.toggleMaskMode(True)
@@ -326,9 +339,10 @@ class Dialog(QWidget):
 			"n": self.numImages.value(),
 			"loras": self.getFirstFiveLoras()
 		}
+		if params["loras"] == []: #not sure if this is necessary, worker was being funky one day
+			del params["loras"]
 
 		data = {
-			#append negative prompt only if it is not empty
 			"prompt": prompt,
 			"params": params,
 			"nsfw": self.nsfw.isChecked(),
@@ -338,7 +352,8 @@ class Dialog(QWidget):
 			"r2": True,
 			"models": [self.model.currentData()],
 			"shared": self.shareWithLAION.isChecked(),
-			"replacement_filter": True
+			"replacement_filter": True,
+			"dry_run": False
 		}
 
 		#add preferred workers if not empty
@@ -353,43 +368,27 @@ class Dialog(QWidget):
 		doc = Krita.instance().activeDocument()
 		if doc is None:
 			return
-		selection = doc.selection()
-		minSize = self.SizeRange.low()*64
-		maxSize = self.SizeRange.high()*64
-		if selection is None:
-			width = height = minSize
-		else: #stimate gen size
-			w = selection.width()
-			h = selection.height()
-			if max(w, h) > maxSize:
-				r = maxSize/min(w, h)
-			elif min(w, h) < minSize:
-				r = minSize/max(w, h)
-			else:
-				r = 1
-			width = math.ceil(w*r/64)*64
-			height = math.ceil(h*r/64)*64
-		
-		post = [self.postProcessing.currentText(), self.upscale.currentText()]
-		denoise = self.denoise_strength.value()/100
-		prompt = self.prompt.toPlainText() + " ### " + self.negativePrompt.toPlainText()
-
-		kt = kudos.calculateKudos(width, height, self.steps.value(), self.sampler.currentText(),
-			   False, False, denoise, post,
-			   False, prompt, self.shareWithLAION.isChecked())
-
-		ki = kudos.calculateKudos(width, height, self.steps.value(), self.sampler.currentText(),
-			   True, True, self.denoise_strength.value()/100, post,
-			   False, self.prompt.toPlainText(), self.shareWithLAION.isChecked())
-		
-		txtKudos = round(kt*self.numImages.value(),2)
-		imgKudos = round(ki*self.numImages.value(),2)
-
-		self.generateButton.setText("Generate (" + str(txtKudos) + " kudos)")
+		self.kudoscountdown.start()
+		self.generateButton.setText("Generate (??? kudos)")
 		if self.maskMode:
-			self.img2imgButton.setText("Inpaint (" + str(imgKudos) + " kudos)")
+			self.img2imgButton.setText("Inpaint")
 		else:
-			self.img2imgButton.setText("Img2Img (" + str(imgKudos) + " kudos)")
+			self.img2imgButton.setText("Img2Img")
+		
+	def checkKudos(self):
+		qDebug("timer expired")
+		try:
+			t2ikudos = str(self.generate(False, False, True))
+			#i2ikudos = str(self.generate(True, False, True))
+			if t2ikudos is None:
+				return #escape condition if an error happened on generation
+			self.generateButton.setText("Generate (" + t2ikudos + " kudos)")
+			#if self.maskMode:
+				#self.img2imgButton.setText("Inpaint (" + i2ikudos + " kudos)")
+			#else:
+				#self.img2imgButton.setText("Img2Img (" + i2ikudos + " kudos)")
+		except Exception as ex:
+			qDebug("Error checking kudos: " + str(ex))
 
 	def refreshUser(self):
 		qDebug("Updating user info")
@@ -405,6 +404,25 @@ class Dialog(QWidget):
 			self.requests.setText(str(self.userInfo["records"]["request"]["image"]))
 			self.contributions.setText(str(self.userInfo["records"]["fulfillment"]["image"]))
 	
+	def transferKudos(self):
+		qDebug("Transferring kudos")
+		#make sure ammount is a number
+		try:
+			amount = abs(int(self.transferKudosAmount.text()))
+		except ValueError:
+			utility.errorMessage("Invalid amount.", "Please enter a number.")
+			return
+		#make sure targetUsername is not empty
+		targetUsername = self.transferUserName.text()
+		if targetUsername == "":
+			utility.errorMessage("Invalid username.", "Please enter a username.")
+			return
+		#make sure targetUsername is not the same as current username
+		if targetUsername == self.userID.text():
+			utility.errorMessage("Invalid username.", "You cannot send kudos to yourself.")
+			return
+		hordeAPI.transferKudos(self.apikey.text(), targetUsername, amount)
+
 		#override
 	def customEvent(self, ev):
 		if ev.type() == self.worker.eventId:

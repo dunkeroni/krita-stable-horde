@@ -119,7 +119,7 @@ def getEncodedImageFromBounds(bounds, inpainting = False, inpaintMode = 0):
             doc.waitForDone()
 
     bytes = doc.pixelData(x, y, w, h)
-    image = QImage(bytes.data(), w, h, QImage.Format_RGBA8888).rgbSwapped()
+    image = QImage(bytes.data(), w, h, QImage.Format_RGB32)
     image = image.scaled(gw, gh, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
     qDebug("Upscaled image to %dx%d" % (gw, gh))
     bytes = QByteArray()
@@ -158,6 +158,7 @@ def putImageIntoBounds(bytes, bounds, nametag="new generation", groupNode = None
         image = QImage()
         image.loadFromData(bytes, 'WEBP')
         qDebug("Found image size is %dx%d. Resizing to selection bounds" % (image.width(), image.height()))
+        qDebug("Format is " + str(image.format()))
         
         image = image.scaled(w, h, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
         qDebug("cropping to w: %d, h: %d" % (ws, hs))

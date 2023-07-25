@@ -45,7 +45,7 @@ def buildAdvancedTab(advanced, dialog):
     layoutH.addWidget(labelClipSkip)
     container = QWidget()
     container.setLayout(layoutH)
-    layout.addRow("Clip Skip (broken)", container)
+    layout.addRow("Clip Skip", container)
     advanced['clip_skip'] = clip_skip
     
     # NSFW

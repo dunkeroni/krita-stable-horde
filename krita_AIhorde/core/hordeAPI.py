@@ -13,6 +13,7 @@ Can also generate from swagger codegen for python, but it's huge and not really 
 
 API_ROOT = "https://aihorde.net/api/v2/"
 BACKUP_ROOT = "https://stablehorde.net/api/v2/"
+LORA_LIST = "https://raw.githubusercontent.com/Haidra-Org/AI-Horde-image-model-reference/main/lora.json"
 root = API_ROOT
 try:
 	response = urllib.request.urlopen(urllib.request.Request(url=root + "status/heartbeat", headers={'User-Agent': 'Mozilla/5.0'}))
@@ -32,7 +33,7 @@ def standardConnection(req: urllib.request.Request):
 	try:
 		response = urllib.request.urlopen(req)
 	except urllib.error.URLError as e:
-		utility.errorMessage("Horde Connection Error", str(e.reason) + "\n Check your internet connection and try again.")
+		utility.errorMessage("Horde Error", str(e.reason))
 		response = None
 		
 	try:
@@ -40,6 +41,7 @@ def standardConnection(req: urllib.request.Request):
 		return result
 	except:
 		return None
+
 
 def pullImage(imageURL):
 	try:
@@ -66,7 +68,7 @@ def status_models(sort = True):
 		}
 	]"""
 	
-	request = urllib.request.Request(root + "status/models")
+	request = urllib.request.Request(root + "status/models", method="GET")
 	models = standardConnection(request)
 	if models is None:
 		return []
@@ -76,7 +78,6 @@ def status_models(sort = True):
 		models = sorted(models, key=lambda k: k['count'], reverse=True)
 	
 	return models
-
 
 def find_user(apikey = "0000000000"):
 	#get user info from stablehorde
@@ -145,7 +146,7 @@ def find_user(apikey = "0000000000"):
 	
 	url = root + "find_user"
 	headers = {"Content-Type": "application/json", "Accept": "application/json", "apikey": apikey}
-	request = urllib.request.Request(url=url, headers=headers)
+	request = urllib.request.Request(url=url, headers=headers, method="GET")
 	userInfo = standardConnection(request)
 	if userInfo is None:
 		return {}
@@ -172,7 +173,7 @@ def generate_async(data, apikey = "0000000000"):
 	url = root + "generate/async"
 	headers = {"Content-Type": "application/json", "Accept": "application/json", "apikey": apikey, "Client-Agent": CLIENT_AGENT}
 
-	request = urllib.request.Request(url=url, data=data, headers=headers)
+	request = urllib.request.Request(url=url, data=data, headers=headers, method="POST")
 	jobInfo = standardConnection(request)
 
 	if jobInfo is None:
@@ -202,7 +203,7 @@ def generate_check(id):
 	"message": "string"
 	}
 	"""
-	request = urllib.request.Request(url = root + "generate/check/" + id)
+	request = urllib.request.Request(url = root + "generate/check/" + id, method="GET")
 	jobInfo = standardConnection(request)
 	if jobInfo is None:
 		return {}
@@ -245,10 +246,36 @@ def generate_status(id):
 	}
 	"""
 	
-	request = urllib.request.Request(url = root + "generate/status/" + id)
+	request = urllib.request.Request(url = root + "generate/status/" + id, method="GET")
 	jobInfo = standardConnection(request)
 	if jobInfo is None:
 		return {}
 	
 	return jobInfo
 
+def transferKudos(apikey, username, amount):
+	#transfer kudos to another user
+	"""Response Format:
+	Success:
+	{"transferred": integer}
+	Failure: 
+	{"message": "string"}
+	"""
+	url = root + "kudos/transfer"
+	data = {"username": username, "amount": int(amount)}
+	qDebug(str(data))
+	data = json.dumps(data).encode("utf-8") #format for sending request
+	headers = {"Content-Type": "application/json", "Accept": "application/json", "apikey": apikey, "Client-Agent": CLIENT_AGENT}
+	request = urllib.request.Request(url=url, data=data, headers=headers, method="POST")
+	jobInfo = standardConnection(request)
+
+	if jobInfo is None:
+		#utility.errorMessage("Failure", "Could not Send kudos due to an unknown parsing error")
+		return
+
+	if "transferred" in jobInfo:
+		qDebug("Kudos transfered")
+		utility.errorMessage("Success", "Kudos transfered successfully \nAmmount: " + str(jobInfo["transferred"]))
+	else:
+		qDebug("Kudos transfer failed")
+		utility.errorMessage("Failure", jobInfo["message"])

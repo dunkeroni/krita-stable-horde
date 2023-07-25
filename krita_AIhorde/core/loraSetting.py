@@ -2,113 +2,40 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
-from ..misc import utility
-import urllib.request, urllib.error, json, copy
-
-def addExperimentTab(tabs: QTabWidget, dialog):
-    qDebug("Creating Experimental tab elements")
-    experiment = {} #pointer to dictionary
-    experimentTab, loraSettings = buildLoRATab(experiment, dialog)
-    tabs.addTab(experimentTab, "LoRA")
-
-    return experiment, loraSettings #dictionary of tab elements
-
-
-def buildLoRATab(experiment, dialog):
-    # ==============Advanced Tab================
-    tabExperiment = QWidget()
-    tabExperiment.setFixedWidth(400)
-    scrollArea = QScrollArea()
-    layout = QVBoxLayout(scrollArea)
-    loramessage = "PLEASE NOTE:\nLoRA is an experimental feature on the Horde right now.\nNot many workers are supporting it at this time.\nUntil it is more stable, you will likely only be able to generate \na few of the most popular models."
-    layout.addWidget(QLabel(loramessage))
-    try:
-        loraSettings = refreshLoRA(layout)
-    except urllib.error.URLError:
-        loraSettings = []
-        layout.addWidget(QLabel("Failed to get LoRAS from Civitai. Is the site down? Check your network connection and restart Krita."))
-
-    tabExperiment.setLayout(layout)
-    #add to scroll area
-    scrollArea.setWidgetResizable(True)
-    scrollArea.setWidget(tabExperiment)
-
-    return scrollArea, loraSettings #tabExperiment
-
-def getLoraList():
-    qDebug("Getting LoRAS from Civitai")
-
-    #10GB limit
-    targetKB = 10 * 1024 * 1024
-    totalKB = 0
-    n = 0
-    loraList = []
-    nextURL = "https://civitai.com/api/v1/models?types=LORA&sort=Highest%20Rated"
-    while (totalKB < targetKB) and (n < 50):
-        n += 1 #escape condition
-        qDebug(nextURL)
-        response = urllib.request.urlopen(urllib.request.Request(url=nextURL, headers={'User-Agent': 'Mozilla/5.0'}))
-        lorablob = json.loads(response.read())
-        qDebug(str(len(lorablob["items"])) + " LoRAS")
-        for lora in lorablob["items"]: #list of dicts of dicts of dicts
-            info = {} #clear object reference
-            file = lora["modelVersions"][0]["files"][0]
-            #get filename left of . sparator
-            name = str(file["name"].split(".")[0])
-            #convert name to ascii
-            name = name.encode("ascii", "ignore").decode()
-            info["name"] = name
-            qDebug(info["name"])
-            description = lora["description"]
-            if description is None:
-                description = "No Description given."
-            #strip description to ascii
-            description = ''.join(i for i in description if ord(i)<128)
-            #replace HTML paragraphs with newline
-            description = description.replace("<p>", "\n")
-            #find and remove all substrings bewteen < and >, including the brackets
-            while "<" in description:
-                start = description.find("<")
-                end = description.find(">")
-                #remove text between < and >
-                description = description[:start] + description[end+1:]
-            info["description"] = description
-            info["rating"] = lora["stats"]["rating"]
-            info["size"] = file["sizeKB"]
-            info["trainedWords"] = lora["modelVersions"][0]["trainedWords"]
-            info["id"] = lora["id"]
-
-            loraList.append(info)
-            totalKB += file["sizeKB"]
-            if totalKB >= targetKB:
-                break
-        nextURL = lorablob["metadata"]["nextPage"]
-    
-    qDebug("Got " + str(len(loraList)) + " LoRAS")
-
-    return loraList
-
-def refreshLoRA(layout: QFormLayout):
-    qDebug("Refreshing LoRAS")
-    loraList = getLoraList()
-    loraSettings = []
-    for lora in loraList:
-        loraSettings.append(LoraSetting(lora, layout))
-
-    return loraSettings
-
 class LoraSetting():
-    def __init__(self, lora, layout: QFormLayout):
+    HORDE_MAX_SIZE_MB = 150
+
+    def __init__(self, layout: QFormLayout):
         #self.widget = QWidget()
         self.layout = layout
         #self.layout.setWidget(self.widget)
-        self.lora = lora
+        #self.lora = lora
 
-        qDebug("Adding controls for " + lora["name"])
+        #create local variables for each setting
+        self.name = ""
+        self.filename = ""
+        self.id = "" #STRING
+        self.description = ""
+        self.checkbox = None
+        self.trigger = None
+        self.unetStrength = None
+        self.textEncoderStrength = 1.0
+        self.unetStrength = 1.0
+        self.nsfw = False
+        self.trainedWords = []
+        self.promptTrigger = "" #unused
+        self.rating = 0.0
+        self.sizeKB = 0.0
+
+        #status variables
+        self.built = False
+
+    def build(self):
+        qDebug("Adding controls for " + self.name)
         #add checkbox
         checkbox = QCheckBox()
         checkbox.setChecked(False)
-        label = QLabel(lora["name"] + " (" + str(lora["id"]) + ")")
+        label = QLabel(self.name + " (" + self.id + ")")
         #add to layout
         Hlayout = QHBoxLayout()
         Hlayout.addWidget(checkbox) 
@@ -117,10 +44,10 @@ class LoraSetting():
         lablecontainer = QWidget()
         lablecontainer.setLayout(Hlayout)
         self.layout.addWidget(lablecontainer)
-        label.setToolTip(lora["description"])
+        label.setToolTip(self.description)
 
         #add lineEdit for trained words
-        lineEdit = QLineEdit(str(lora["trainedWords"]))
+        lineEdit = QLineEdit(str(self.trainedWords))
         lineEdit.setReadOnly(True)
         trainedWordslabel = QLabel("Trained Words:")
         Hlayout = QHBoxLayout()
@@ -135,7 +62,7 @@ class LoraSetting():
         trainedWordslabel.setToolTip(trainedWordsTooltip)
 
         #add lineEdit for custom trigger word, default to name
-        lineEdit = QLineEdit(lora["name"])
+        lineEdit = QLineEdit(self.name)
         triggerlabel = QLabel("Prompt Trigger:")
         Hlayout = QHBoxLayout()
         Hlayout.addWidget(triggerlabel)
@@ -143,7 +70,6 @@ class LoraSetting():
         triggercontainer = QWidget()
         triggercontainer.setLayout(Hlayout)
         self.layout.addWidget(triggercontainer)
-        lineEdit.setText(lora["name"])
         #tooltip
         promptTriggerTooltip = "YOU DO NOT NEED TO USE TRIGGER WORDS IN YOUR PROMPT.\n\n At this time, the setting appears to do nothing. I have included it in case that changes.\nYou can just enable and control loras from the checkbox."
         lineEdit.setToolTip(promptTriggerTooltip)
@@ -204,15 +130,58 @@ class LoraSetting():
         UScontainer.setVisible(False)
         CScontainer.setVisible(False)
         
-        checkbox.stateChanged.connect(lambda: triggercontainer.setVisible(checkbox.isChecked()))
+        #.stateChanged.connect(lambda: triggercontainer.setVisible(checkbox.isChecked())) #hiding this until we need it for something in the future
         checkbox.stateChanged.connect(lambda: UScontainer.setVisible(checkbox.isChecked()))
         checkbox.stateChanged.connect(lambda: CScontainer.setVisible(checkbox.isChecked()))
         checkbox.stateChanged.connect(lambda: trainedWordscontainer.setVisible(checkbox.isChecked()))
 
-        self.name = label.text()
-        self.id = lora["id"]
+        #preserve references to the elements
         self.checkbox = checkbox
         self.trigger = lineEdit
         self.unetStrength = unetStrength
         self.textEncoderStrength = textEncoderStrength
 
+        #set status
+        self.built = True
+    
+    def hide(self):
+        #hide all elements
+        pass
+
+    def show(self):
+        #show all elements
+        pass
+
+    def isValid(self, nsfw = True, searchText = "", searchID = True, searchName = True, searchDescription = True):
+        #check if this lora is valid
+        valid = True #default case
+        
+        #true when nsfw is enabled or the lora is not nsfw
+        valid = valid and (not(self.nsfw) or nsfw) 
+
+        #true when the lora is smaller than maxSizeMB
+        valid = valid and (self.sizeKB <= self.HORDE_MAX_SIZE_MB * 1024)
+
+        #searches text if the filter is active
+        valid = valid and self.search(searchText, searchID, searchName, searchDescription)
+
+        return valid
+
+    def search(self, searchText, searchID, searchName, searchDescription):
+        if searchText == "": #default case
+            return True
+        
+        if searchID:
+            #check if the searchText appears in the ID
+            if self.id.find(searchText) != -1:
+                return True
+        if searchName:
+            #check if the searchText appears in the name
+            if self.name.find(searchText) != -1:
+                return True
+        if searchDescription:
+            #check if the searchText appears in the description
+            if self.description.find(searchText) != -1:
+                return True
+            
+        return False #no matches found

@@ -63,7 +63,11 @@ class Worker():
 
 	def checkStatus(self):
 		#get the status of the current generation
-		qDebug("Checking status...")
+		totaltime = self.checkCounter * self.CHECK_WAIT
+		#convert total time to mm:ss format
+		minutes = int(totaltime/60)
+		seconds = int(totaltime%60)
+		qDebug("Checking status... " + str(minutes) + ":" + str(seconds).zfill(2))
 		data = hordeAPI.generate_check(self.id)
 		self.checkCounter = self.checkCounter + 1
 
@@ -135,6 +139,11 @@ class Worker():
 			else:
 				self.initMask = None
 			init, mask = selectionHandler.getEncodedImageFromBounds(self.bounds, inpainting, settings['inpaintMode'])#inpainting) inpainting removed for img2img workaround
+			#DEBUG: put init image into new layer
+			bytes = base64.b64decode(init)
+			bytes = QByteArray(bytes)
+			selectionHandler.putImageIntoBounds(bytes, self.bounds, "init")
+
 			data.update({"source_image": init})
 			data.update({"source_processing": "img2img"})
 			params.update({"hires_fix": False})
@@ -145,20 +154,25 @@ class Worker():
 			data.update({"source_processing": "inpainting"})
 
 		apikey = "0000000000" if settings["apikey"] == "" else settings["apikey"]
+
 		jobInfo = hordeAPI.generate_async(data, apikey) #submit request for async generation
 		if jobInfo == {}:
 			self.cancel("Error calling Horde. Are you connected to the internet?")
 			return
-
-		#jobInfo will only have a "message" field and no "id" field if the request failed
-		if "id" in jobInfo:
-			self.id = jobInfo["id"]
-		else:
-			self.cancel()
-			utility.errorMessage("horde.generate() error", str(jobInfo))
 		
-		self.checkStatus() #start checking status of the job, repeats every CHECK_WAIT seconds
-		return
+		#this is all a bit messy, need to clean up and move logic later
+		kudos = jobInfo["kudos"]
+		qDebug("Kudos Cost: " + str(kudos))
+		if not settings["payloadData"]["dry_run"]:
+			#jobInfo will have a "message" field and no "id" field if the request failed
+			if "id" in jobInfo:
+				self.id = jobInfo["id"]
+			else:
+				self.cancel()
+				utility.errorMessage("horde.generate() error", str(jobInfo))
+			self.checkStatus() #start checking status of the job, repeats every CHECK_WAIT seconds
+
+		return jobInfo["kudos"]
 
 	def cancel(self, message="Generation canceled."):
 		self.cancelled = True

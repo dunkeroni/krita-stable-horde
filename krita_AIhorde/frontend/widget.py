@@ -11,6 +11,10 @@ from ..frontend import basicTab, advancedTab, userTab, loraTab, resultsTab, tool
 class Dialog(QWidget):
 	def __init__(self):
 		super().__init__()
+		self.kudoscountdown = QTimer(self)
+		self.kudoscountdown.setSingleShot(True)
+		self.kudoscountdown.setInterval(2000)
+		self.kudoscountdown.timeout.connect(self.checkKudos)
 
 		self.maskMode = False
 
@@ -112,7 +116,7 @@ class Dialog(QWidget):
 		self.genInfo: QTextEdit = self.results['genInfo']
 
 	def connectToolTips(self):
-		allWidgets = {}
+		allWidgets = {} #clear AllWidgets dictionary and add all the widgets from the tabs
 		allWidgets.update(self.basic)
 		allWidgets.update(self.advanced)
 		allWidgets.update(self.user)
@@ -131,7 +135,7 @@ class Dialog(QWidget):
 
 		#kudos update connections
 		self.priceCheck.clicked.connect(self.updateKudos)
-		self.denoise_strength.valueChanged.connect(self.updateKudos)
+		#self.denoise_strength.valueChanged.connect(self.updateKudos) #No longer seems to affect kudos
 		self.SizeRange.sliderMoved.connect(self.updateKudos)
 		self.sampler.currentTextChanged.connect(self.updateKudos)
 		self.numImages.valueChanged.connect(self.updateKudos)
@@ -173,7 +177,7 @@ class Dialog(QWidget):
 					break
 		return loras
 
-	def generate(self, img2img = False, inpainting = False):
+	def generate(self, img2img = False, inpainting = False, dryrun = False):
 		qDebug("Generating image from dialog call...")
 		doc = Krita.instance().activeDocument()
 
@@ -191,14 +195,16 @@ class Dialog(QWidget):
 			return
 		else:
 			utility.writeSettings(self.getCurrentSettings())
-			self.setEnabledStatus(False)
+			self.setEnabledStatus(dryrun) #False: locks the UI when generating, True keeps unlocked when in dryrun
 			self.refreshUser() #doesn't work later in threaded instances, so might as well do it early
 			self.statusDisplay.setText("Waiting for generated image...")
 
 			settings = self.getCurrentSettings()
 			settings["genImg2img"] = img2img
 			settings["genInpainting"] = inpainting
+			settings["payloadData"]["dry_run"] = dryrun #override for kudos check
 			kudosCost = self.worker.generate(settings) #trigger threaded generation task
+			return kudosCost
 			#self.worker.triggerGenerate.emit(settings) #trigger threaded generation task
 	
 	def img2imgGenerate(self):
@@ -337,7 +343,6 @@ class Dialog(QWidget):
 			del params["loras"]
 
 		data = {
-			#append negative prompt only if it is not empty
 			"prompt": prompt,
 			"params": params,
 			"nsfw": self.nsfw.isChecked(),
@@ -363,43 +368,27 @@ class Dialog(QWidget):
 		doc = Krita.instance().activeDocument()
 		if doc is None:
 			return
-		selection = doc.selection()
-		minSize = self.SizeRange.low()*64
-		maxSize = self.SizeRange.high()*64
-		if selection is None:
-			width = height = minSize
-		else: #stimate gen size
-			w = selection.width()
-			h = selection.height()
-			if max(w, h) > maxSize:
-				r = maxSize/min(w, h)
-			elif min(w, h) < minSize:
-				r = minSize/max(w, h)
-			else:
-				r = 1
-			width = math.ceil(w*r/64)*64
-			height = math.ceil(h*r/64)*64
-		
-		post = [self.postProcessing.currentText(), self.upscale.currentText()]
-		denoise = self.denoise_strength.value()/100
-		prompt = self.prompt.toPlainText() + " ### " + self.negativePrompt.toPlainText()
-
-		kt = kudos.calculateKudos(width, height, self.steps.value(), self.sampler.currentText(),
-			   False, False, denoise, post,
-			   False, prompt, self.shareWithLAION.isChecked())
-
-		ki = kudos.calculateKudos(width, height, self.steps.value(), self.sampler.currentText(),
-			   True, True, self.denoise_strength.value()/100, post,
-			   False, self.prompt.toPlainText(), self.shareWithLAION.isChecked())
-		
-		txtKudos = round(kt*self.numImages.value(),2)
-		imgKudos = round(ki*self.numImages.value(),2)
-
-		self.generateButton.setText("Generate (" + str(txtKudos) + " kudos)")
+		self.kudoscountdown.start()
+		self.generateButton.setText("Generate (??? kudos)")
 		if self.maskMode:
-			self.img2imgButton.setText("Inpaint (" + str(imgKudos) + " kudos)")
+			self.img2imgButton.setText("Inpaint")
 		else:
-			self.img2imgButton.setText("Img2Img (" + str(imgKudos) + " kudos)")
+			self.img2imgButton.setText("Img2Img")
+		
+	def checkKudos(self):
+		qDebug("timer expired")
+		try:
+			t2ikudos = str(self.generate(False, False, True))
+			#i2ikudos = str(self.generate(True, False, True))
+			if t2ikudos is None:
+				return #escape condition if an error happened on generation
+			self.generateButton.setText("Generate (" + t2ikudos + " kudos)")
+			#if self.maskMode:
+				#self.img2imgButton.setText("Inpaint (" + i2ikudos + " kudos)")
+			#else:
+				#self.img2imgButton.setText("Img2Img (" + i2ikudos + " kudos)")
+		except Exception as ex:
+			qDebug("Error checking kudos: " + str(ex))
 
 	def refreshUser(self):
 		qDebug("Updating user info")

@@ -159,17 +159,17 @@ class Worker():
 		if jobInfo == {}:
 			self.cancel("Error calling Horde. Are you connected to the internet?")
 			return
-
-		#jobInfo will have a "message" field and no "id" field if the request failed
-		if "id" in jobInfo:
-			self.id = jobInfo["id"]
-		else:
-			self.cancel()
-			utility.errorMessage("horde.generate() error", str(jobInfo))
 		
+		#this is all a bit messy, need to clean up and move logic later
 		kudos = jobInfo["kudos"]
 		qDebug("Kudos Cost: " + str(kudos))
 		if not settings["payloadData"]["dry_run"]:
+			#jobInfo will have a "message" field and no "id" field if the request failed
+			if "id" in jobInfo:
+				self.id = jobInfo["id"]
+			else:
+				self.cancel()
+				utility.errorMessage("horde.generate() error", str(jobInfo))
 			self.checkStatus() #start checking status of the job, repeats every CHECK_WAIT seconds
 
 		return jobInfo["kudos"]

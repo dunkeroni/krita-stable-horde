@@ -3,9 +3,9 @@ def getToolTips():
 	toolTips = {}
 	
 	#basic
-	toolTips['priceCheck'] = "INNACURATE: HORDE HAS CHANGED TO AI MODEL, LOCAL CALCULATION IS OUT OF DATE\nCheck the kudos requirement to generate based on the current settings"
-	toolTips['generateButton'] = "Generate an image, covering up the current image"
-	toolTips['maskButton'] = "Create a mask layer to draw on"
+	toolTips['priceCheck'] = "Asks the Horde how much Kudos the current generation settings would cost\nTakes 2s to avoid spamming.\nAuto updates when relevant settings change."
+	toolTips['generateButton'] = "Generate an image, covering up the current image with a new layer"
+	toolTips['maskButton'] = "Creates a mask layer to draw on"
 	toolTips['img2imgButton'] = "Generate an image, using the current image and mask as input"
 	toolTips['denoise_strength'] = "Adjust the strength of the denoiser. \nHigher values will change the image more, lower will stay closer to the original."
 	toolTips['CFG'] = "Higher values will make the result closer to the prompt, but may result in burnt images if too high. \nLower values will be more creative but can be blurry and less defined. \nLiterally this value affects how the prompt and unconditioned input (negative prompt if supplied) affects the result of each step."

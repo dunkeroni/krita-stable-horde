@@ -25,7 +25,7 @@ class Dialog(QWidget):
 		self.basic = basicTab.addBasicTab(tabs, self)
 		self.advanced = advancedTab.addAdvancedTab(tabs, self)
 		self.user = userTab.addUserTab(tabs) #doesn't need self because no sliders in user tab
-		self.loraSettings, self.searchTool = loraTab.addLoraTab(tabs, self)
+		self.loraSettings, self.searchTool = loraTab.addLoraTab(tabs)
 		self.results = resultsTab.addResultsTab(tabs, self)
 		self.layout.addWidget(tabs)
 		self.tabs = tabs
@@ -159,6 +159,10 @@ class Dialog(QWidget):
 			self.shareWithLAION.setChecked(settings["shared"])
 		except Exception as ex:
 			qDebug("Failed to load previous settings. Some fields may be blank\n" + str(ex))
+
+	def setLoraList(self, loraList):
+		#list of LoraSetting objects, updates when loras are refreshed
+		self.loraSettings = loraList
 
 	def getFirstFiveLoras(self):
 		loras = []

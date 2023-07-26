@@ -17,6 +17,21 @@ class LoraSearcher():
 		self.loraList: list[LoraSetting] = loraList
 
 	def createSearchArea(self, layout: QFormLayout):
+		#load from Civitai
+		# number of LoRAs to load spinbox
+		self.numLoras = QSpinBox()
+		self.numLoras.setRange(1, 9999)
+		self.numLoras.setValue(100)
+		#Load Loras pushbutton
+		self.loadLorasButton = QPushButton("Load LoRAs")
+		#add to layout
+		Hlayout = QHBoxLayout()
+		Hlayout.addWidget(self.numLoras)
+		Hlayout.addWidget(self.loadLorasButton)
+		loadLorasContainer = QWidget()
+		loadLorasContainer.setLayout(Hlayout)
+		layout.addRow(loadLorasContainer)
+
 		#create search bar, inline with a "Search" pushbutton
 		self.searchbar = QLineEdit()
 		self.searchbar.setPlaceholderText("Search")

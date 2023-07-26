@@ -59,6 +59,7 @@ class LoraSetting():
 		lineEdit.setReadOnly(True)
 		trainedWordslabel = QLabel("Trained Words:")
 		Hlayout = QHBoxLayout()
+		Hlayout.setContentsMargins(0, 0, 0, 0)
 		Hlayout.addWidget(trainedWordslabel)
 		Hlayout.addWidget(lineEdit)
 		trainedWordscontainer = QWidget()

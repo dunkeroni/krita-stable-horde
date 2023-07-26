@@ -6,16 +6,17 @@ import urllib.request, urllib.error, json
 from ..misc.loraSearcher import LoraSearcher
 from ..core.loraSetting import LoraSetting
 
-def addLoraTab(tabs: QTabWidget, dialog):
+def addLoraTab(tabs: QTabWidget):
 	qDebug("Creating LoRA tab elements")
 	loraWidgets = {} #pointer to dictionary
-	loraTab, loraSettings, searchTool = buildLoRATab(loraWidgets, dialog)
+	loraTab, loraSettings, searchTool = buildLoRATab(3)
+	searchTool.loadLorasButton.clicked.connect(lambda: buildLoRATab(searchTool.numLoras.value()))
 	tabs.addTab(loraTab, "LoRA")
 
 	return loraSettings, searchTool #dictionary of tab elements
 
 
-def buildLoRATab(lora, dialog):
+def buildLoRATab(numLoras):
 	# ==============Advanced Tab================
 	tabLora = QWidget()
 	tabLora.setFixedWidth(400)
@@ -32,7 +33,7 @@ def buildLoRATab(lora, dialog):
 	searchTool = LoraSearcher(scrollArea)
 	layout.addLayout(searchTool.layout)
 	try:
-		loraSettings = getLoraList(layout)
+		loraSettings = getLoraList(layout, numLoras)
 	except urllib.error.URLError:
 		loraSettings = []
 		layout.addWidget(QLabel("Failed to get LoRAS from Civitai. Is the site down? Check your network connection and restart Krita."))
@@ -49,7 +50,7 @@ def getDefaultLoraList():
 	return defaultLoras #list of ID numbers
 
 
-def getLoraList(layout: QFormLayout):
+def getLoraList(layout: QFormLayout, numLoras):
 	qDebug("Getting LoRAS from Civitai")
 
 	#10GB limit
@@ -58,7 +59,7 @@ def getLoraList(layout: QFormLayout):
 	n = 0
 	loraList = []
 	nextURL = "https://civitai.com/api/v1/models?types=LORA&sort=Highest%20Rated"
-	while (totalKB < targetKB) and (n < 10):
+	while (len(loraList) < numLoras) and (n < 999):
 		n += 1 #escape condition
 		qDebug(nextURL)
 		response = urllib.request.urlopen(urllib.request.Request(url=nextURL, headers={'User-Agent': 'Mozilla/5.0'}))
@@ -85,8 +86,8 @@ def getLoraList(layout: QFormLayout):
 			sett.build() #create widgets and add them to the layout
 			loraList.append(sett)
 
-			totalKB += file["sizeKB"]
-			if totalKB >= targetKB:
+			#totalKB += file["sizeKB"]
+			if len(loraList) >= numLoras:
 				break
 		nextURL = lorablob["metadata"]["nextPage"]
 	

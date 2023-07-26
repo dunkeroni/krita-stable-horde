@@ -31,7 +31,8 @@ def getToolTips():
 	toolTips['karras'] = "Magic. Improves generation with fewer steps."
 	toolTips['useRealInpaint'] = "Force trigger Inpaint instead of preferred Img2Img mode. For debugging."
 	toolTips['shareWithLAION'] = "Share your generated images with the LAION database to help training in the future. \nThis will not share any of your personal information, only the generated images. Reduces kudos cost."
-	
+	toolTips['numLoras'] = "How many LoRA references to load from Civitai. Sorted by popularity.\nRESTART Krita to apply changes."
+
 	#user
 	toolTips['apikey'] = "Your API key. Identifies you so that you can use your stored up kudos. \nYou can request an API key on the AI Horde website. \nDo not lose it, and do not share it with others."
 	toolTips['userID'] = "Your user ID. This is used to identify you to the AI Horde."

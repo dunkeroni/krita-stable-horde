@@ -9,10 +9,10 @@ from ..core.loraSetting import LoraSetting
 def addLoraTab(tabs: QTabWidget, dialog):
 	qDebug("Creating LoRA tab elements")
 	loraWidgets = {} #pointer to dictionary
-	loraTab, loraSettings = buildLoRATab(loraWidgets, dialog)
+	loraTab, loraSettings, searchTool = buildLoRATab(loraWidgets, dialog)
 	tabs.addTab(loraTab, "LoRA")
 
-	return loraSettings #dictionary of tab elements
+	return loraSettings, searchTool #dictionary of tab elements
 
 
 def buildLoRATab(lora, dialog):
@@ -20,12 +20,14 @@ def buildLoRATab(lora, dialog):
 	tabLora = QWidget()
 	tabLora.setFixedWidth(400)
 	scrollArea = QScrollArea()
+	scrollArea.setAlignment(Qt.AlignTop)
 	layout = QVBoxLayout(scrollArea)
+	layout.setAlignment(Qt.AlignTop)
 	tabLora.setLayout(layout)
 	#add to scroll area
 	scrollArea.setWidgetResizable(True)
 	scrollArea.setWidget(tabLora)
-	loramessage = "PLEASE NOTE:\nLoRA is an experimental feature on the Horde right now.\nNot many workers are supporting it at this time.\nUntil it is more stable, you will likely only be able to generate \na few of the most popular models."
+	loramessage = "PLEASE NOTE:\nThe Horde only supports the latest version of each LoRA.\nIf a creator has uploaded multiple versions, only the last will work.\nIf this causes problems for you, contact the creator."
 	layout.addWidget(QLabel(loramessage))
 	searchTool = LoraSearcher(scrollArea)
 	layout.addLayout(searchTool.layout)
@@ -34,8 +36,8 @@ def buildLoRATab(lora, dialog):
 	except urllib.error.URLError:
 		loraSettings = []
 		layout.addWidget(QLabel("Failed to get LoRAS from Civitai. Is the site down? Check your network connection and restart Krita."))
-
-	return scrollArea, loraSettings #tabExperiment
+	searchTool.setLoraList(loraSettings) #give the search tool a reference to the loraSettings
+	return scrollArea, loraSettings, searchTool #tabExperiment
 
 def getDefaultLoraList():
 	url = "https://raw.githubusercontent.com/Haidra-Org/AI-Horde-image-model-reference/main/lora.json"
@@ -74,6 +76,7 @@ def getLoraList(layout: QFormLayout):
 			sett.filename = filename.encode("ascii", "ignore").decode()
 			qDebug(sett.name)
 			sett.description = pruneDescription(lora["description"])
+			sett.nsfw = lora["nsfw"]
 			sett.rating = lora["stats"]["rating"]
 			sett.sizeKB = file["sizeKB"]
 			sett.trainedWords = lora["modelVersions"][0]["trainedWords"]

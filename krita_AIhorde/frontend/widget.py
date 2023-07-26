@@ -2,7 +2,6 @@ from krita import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-import math
 
 from ..misc import utility, range_slider, kudos
 from ..core import hordeAPI, horde, resultCollector
@@ -26,7 +25,7 @@ class Dialog(QWidget):
 		self.basic = basicTab.addBasicTab(tabs, self)
 		self.advanced = advancedTab.addAdvancedTab(tabs, self)
 		self.user = userTab.addUserTab(tabs) #doesn't need self because no sliders in user tab
-		self.loraSettings = loraTab.addLoraTab(tabs, self)
+		self.loraSettings, self.searchTool = loraTab.addLoraTab(tabs, self)
 		self.results = resultsTab.addResultsTab(tabs, self)
 		self.layout.addWidget(tabs)
 		self.tabs = tabs

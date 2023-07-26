@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+from PyQt5.QtCore import qDebug
 
 from ..core.loraSetting import LoraSetting
 
@@ -8,9 +9,12 @@ class LoraSearcher():
 	def __init__(self, scrollArea: QScrollArea):
 		self.scrollArea = scrollArea
 		self.layout = QFormLayout()
+		self.loraList = [] #list of LoraSetting objects to be filled later
 
 		self.createSearchArea(self.layout)
 
+	def setLoraList(self, loraList: list):
+		self.loraList: list[LoraSetting] = loraList
 
 	def createSearchArea(self, layout: QFormLayout):
 		#create search bar, inline with a "Search" pushbutton
@@ -36,6 +40,7 @@ class LoraSearcher():
 		#row of checkboxes to toggle filters
 		self.filterButtons = []
 		self.filterButtons.append(QCheckBox("Show NSFW"))
+		self.filterButtons[0].setToolTip("NOTE: May not be accurate. Depends on creators and users to flag NSFW models.")
 		self.filterButtons.append(QCheckBox("Search ID"))
 		self.filterButtons.append(QCheckBox("Search Name"))
 		self.filterButtons.append(QCheckBox("Search Desc"))		
@@ -52,6 +57,12 @@ class LoraSearcher():
 	def search(self):
 		qDebug("Searching for LoRAS")
 		#apply filters and include matching loraSetting objects
+		for sett in self.loraList:
+			result = sett.isValid(self.filterButtons[0].isChecked(), self.searchbar.text(), self.filterButtons[1].isChecked(), self.filterButtons[2].isChecked(), self.filterButtons[3].isChecked())
+			if result:
+				sett.show()
+			else:
+				sett.hide()
 		pass
 
 

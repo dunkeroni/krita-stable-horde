@@ -6,7 +6,16 @@ class LoraSetting():
 	HORDE_MAX_SIZE_MB = 150
 
 	def __init__(self, layout: QFormLayout):
-		self.layout = layout
+		self.parentLayout = layout
+		self.layout = QFormLayout()
+		self.layout.setAlignment(Qt.AlignTop)
+		#create a container widget to hold the layout
+		self.frame = QWidget() #contains the layout so it can be hidden
+		self.frame.setLayout(self.layout)
+		self.parentLayout.addWidget(self.frame)
+		self.frame.setContentsMargins(0, 0, 0, 0)
+		self.frame.setMinimumSize(0, 0)
+		self.frame.resize(0, 0)
 
 		#create local variables for each setting
 		self.name = ""
@@ -26,6 +35,7 @@ class LoraSetting():
 
 		#status variables
 		self.built = False
+		self.hidden = False
 
 	def build(self):
 		qDebug("Adding controls for " + self.name)
@@ -40,6 +50,7 @@ class LoraSetting():
 		Hlayout.setAlignment(Qt.AlignLeft)
 		lablecontainer = QWidget()
 		lablecontainer.setLayout(Hlayout)
+		lablecontainer.setMinimumSize(0, 0)
 		self.layout.addWidget(lablecontainer)
 		label.setToolTip(self.description)
 
@@ -52,6 +63,7 @@ class LoraSetting():
 		Hlayout.addWidget(lineEdit)
 		trainedWordscontainer = QWidget()
 		trainedWordscontainer.setLayout(Hlayout)
+		trainedWordscontainer.setMinimumSize(0, 0)
 		self.layout.addWidget(trainedWordscontainer)
 		#tooltip
 		trainedWordsTooltip = "The words the model was trained on (if any).\nIf there are words in here, you can use them in your prompt to get better results.\nHover over the lora name to see if the civitai description has any other hints on use."
@@ -66,6 +78,7 @@ class LoraSetting():
 		Hlayout.addWidget(lineEdit)
 		triggercontainer = QWidget()
 		triggercontainer.setLayout(Hlayout)
+		triggercontainer.setMinimumSize(0, 0)
 		self.layout.addWidget(triggercontainer)
 		#tooltip
 		promptTriggerTooltip = "YOU DO NOT NEED TO USE TRIGGER WORDS IN YOUR PROMPT.\n\n At this time, the setting appears to do nothing. I have included it in case that changes.\nYou can just enable and control loras from the checkbox."
@@ -87,6 +100,7 @@ class LoraSetting():
 		layoutH.addWidget(labelUnetStrength)
 		UScontainer = QWidget()
 		UScontainer.setLayout(layoutH)
+		UScontainer.setMinimumSize(0, 0)
 		self.layout.addWidget(UScontainer)
 		#tooltip
 		unetStrengthTooltip = "How strongly the LoRA will affect how the model generates the image."
@@ -108,6 +122,7 @@ class LoraSetting():
 		layoutH.addWidget(labelTextEncoderStrength)
 		CScontainer = QWidget()
 		CScontainer.setLayout(layoutH)
+		CScontainer.setMinimumSize(0, 0)
 		self.layout.addWidget(CScontainer)
 		#tooltip
 		textEncoderStrengthTooltip = "How strongly the LoRA will affect how the model processes the prompt."
@@ -120,6 +135,9 @@ class LoraSetting():
 		UScontainer.layout().setContentsMargins(0, 0, 0, 0)
 		CScontainer.layout().setContentsMargins(0, 0, 0, 0)
 		lablecontainer.layout().setContentsMargins(0, 0, 0, 0)
+		self.frame.setContentsMargins(0, 0, 0, 0)
+		self.frame.layout().setContentsMargins(0, 0, 0, 0)
+		self.layout.setContentsMargins(0, 0, 0, 0)
 
 		#connect show/hide to checkbox
 		trainedWordscontainer.setVisible(False)
@@ -142,16 +160,13 @@ class LoraSetting():
 		self.built = True
 	
 	def hide(self):
-		#hide all elements
+		self.frame.setVisible(False)
+		self.hidden = True
 		pass
 
 	def show(self):
-		#show all elements
-		pass
-
-	def deleteAll(self):
-		#delete all elements
-		self.built = False
+		self.frame.setVisible(True)
+		self.hidden = False
 		pass
 
 	def isValid(self, nsfw = True, searchText = "", searchID = True, searchName = True, searchDescription = True):
@@ -172,18 +187,19 @@ class LoraSetting():
 	def search(self, searchText, searchID, searchName, searchDescription):
 		if searchText == "": #default case
 			return True
+		searchText = searchText.lower() #case insensitive
 		
 		if searchID:
 			#check if the searchText appears in the ID
-			if self.id.find(searchText) != -1:
+			if self.id.lower().find(searchText) != -1:
 				return True
 		if searchName:
 			#check if the searchText appears in the name
-			if self.name.find(searchText) != -1:
+			if self.name.lower().find(searchText) != -1:
 				return True
 		if searchDescription:
 			#check if the searchText appears in the description
-			if self.description.find(searchText) != -1:
+			if self.description.lower().find(searchText) != -1:
 				return True
 			
 		return False #no matches found

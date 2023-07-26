@@ -3,6 +3,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
 import urllib.request, urllib.error, json
+from ..misc.loraSearcher import LoraSearcher
 from ..core.loraSetting import LoraSetting
 
 def addLoraTab(tabs: QTabWidget, dialog):
@@ -20,18 +21,19 @@ def buildLoRATab(lora, dialog):
 	tabLora.setFixedWidth(400)
 	scrollArea = QScrollArea()
 	layout = QVBoxLayout(scrollArea)
+	tabLora.setLayout(layout)
+	#add to scroll area
+	scrollArea.setWidgetResizable(True)
+	scrollArea.setWidget(tabLora)
 	loramessage = "PLEASE NOTE:\nLoRA is an experimental feature on the Horde right now.\nNot many workers are supporting it at this time.\nUntil it is more stable, you will likely only be able to generate \na few of the most popular models."
 	layout.addWidget(QLabel(loramessage))
+	searchTool = LoraSearcher(scrollArea)
+	layout.addLayout(searchTool.layout)
 	try:
 		loraSettings = getLoraList(layout)
 	except urllib.error.URLError:
 		loraSettings = []
 		layout.addWidget(QLabel("Failed to get LoRAS from Civitai. Is the site down? Check your network connection and restart Krita."))
-
-	tabLora.setLayout(layout)
-	#add to scroll area
-	scrollArea.setWidgetResizable(True)
-	scrollArea.setWidget(tabLora)
 
 	return scrollArea, loraSettings #tabExperiment
 
